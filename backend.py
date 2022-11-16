@@ -17,15 +17,29 @@ wslogger.setLevel(logging.WARN)
 
 
 class Player:
-    def __init__(self, px, py):
-        self.px = 0
-        self.py = 0
+    def __init__(self, px=158, py=140):
+        self.px = px
+        self.py = py
+        self.v = 0
+        self.a = 10
+        self.click = False
+    
+    def update(self):
+        if self.click:
+            self.click = False
+            self.a = max(-100, self.a-100)
+            #self.v = 0.0
+        else:
+            self.a = min(10, self.a + 10)
+        
+        self.v = self.v + self.a * 1/30
+        self.py = self.py + self.v * 1/30
 
 
 class GameServer:
     def __init__(self):
         self.viewers = set()
-        self.players = {Player(0, 0)}
+        self.players = {}
 
     async def incomming_handler(self, websocket, path):
         try:
@@ -35,6 +49,12 @@ class GameServer:
                 if data['cmd'] == 'join':
                     if path == '/viewer':
                         self.viewers.add(websocket)
+                    else:
+                        self.players[websocket] = Player()
+                
+                if data['cmd'] == 'click' and path == '/player':
+                    if self.players[websocket]:
+                        self.players[websocket].click = True
 
         except websockets.exceptions.ConnectionClosed as c:
             logger.info('Client disconnected')
@@ -43,20 +63,37 @@ class GameServer:
     
     async def mainloop(self):
         while True:
-            logger.info("Waiting for a viewer")
+            #logger.info("Waiting for a viewer")
             #self.current_player = await self.players.get()
 
-            if self.players:
-                for p in self.players:
-                    p.px = (p.px + 10)%400
-                    p.py = 200*math.sin(p.px/100)+200
-            
-                    if self.viewers:
-                        for v in self.viewers:
-                            await v.send(json.dumps({'player':0,'px':p.px,'py':p.py}))
-            await asyncio.sleep(1/10)
+            # Update world state
+            for p in self.players.values():
+                p.update()
 
-if __name__ == "__main__":
+            # Get world state
+            world_state = json.dumps({'evt':'world_state', 'players':[{'px':p.px,'py':p.py, 'v':p.v, 'a':p.a} for p in self.players.values()]})
+
+            #share world state wih all players and viewers:
+            viewers_to_remove = []
+            for v in self.viewers:
+                try:
+                    await v.send(world_state)
+                except websockets.exceptions.ConnectionClosed as c:
+                    viewers_to_remove.append(v)
+            self.viewers.difference_update(viewers_to_remove)
+
+            players_to_remove = []
+            for p in self.players.keys():
+                try:
+                    await p.send(world_state)
+                except websockets.exceptions.ConnectionClosed as c:
+                    players_to_remove.append(p)
+            [self.players.pop(key) for key in players_to_remove]
+                        
+            await asyncio.sleep(1/30)
+
+
+if __name__ == '__main__':
     game = GameServer()
     game_loop_task = asyncio.ensure_future(game.mainloop())
     websocket_server = websockets.serve(game.incomming_handler, 'localhost', 8765)

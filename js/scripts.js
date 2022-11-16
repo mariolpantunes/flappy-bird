@@ -1,10 +1,13 @@
 const socket = new WebSocket('ws://localhost:8765/viewer');
+const socket_player = new WebSocket('ws://localhost:8765/player');
 
-let px = 0;
-let py = 0;
+let px = 158;
+let py = 140;
 let bx = 0;
 let scrollSpeed = 5;
-
+let click = false;
+let fps = 0;
+let lastTime = performance.now();
 
 // Connection opened
 socket.addEventListener('open', (event) => {
@@ -15,8 +18,45 @@ socket.addEventListener('open', (event) => {
 socket.addEventListener('message', (event) => {
     const data = JSON.parse(event.data);
     console.log('Message from server ', data);
-    px = data['px'];
-    py = data['py'];
+    
+    if(data.evt == 'world_state') {
+        // Update the world state
+        if(data['players'].length > 0) {
+        player = data['players'][0]
+        px = player.px;
+        py = player.py;
+        }
+        // Draw the scene
+        requestAnimationFrame(draw);
+    }
+});
+
+
+function onMouseClick() {
+    console.log('onMouseClick');
+    click = true;
+}
+
+
+// Connection opened
+socket_player.addEventListener('open', (event) => {
+    socket_player.send(JSON.stringify({'cmd':'join'}));
+    const canvas = document.getElementById('canvas');
+    canvas.addEventListener('mousedown', onMouseClick);
+});
+
+// Listen for messages
+socket_player.addEventListener('message', (event) => {
+    const data = JSON.parse(event.data);
+    console.log('Message from server ', data);
+    
+    if(data.evt == 'world_state') {
+        // Update the world state
+        if (click == true) {
+            socket_player.send(JSON.stringify({'cmd':'click'}));
+            click = false;
+        }
+    }
 });
 
 const bird_img = new Image();
@@ -24,45 +64,9 @@ const back = new Image();
 let i = 0;
 
 
-function startAnimating(fps) {
-    fpsInterval = 1000 / fps;
-    then = Date.now();
-    startTime = then;
-    console.log(startTime);
-    animate();
-}
-
-function animate() {
-
-    // request another frame
-
-    requestAnimationFrame(animate);
-
-    // calc elapsed time since last loop
-
-    now = Date.now();
-    elapsed = now - then;
-
-    // if enough time has elapsed, draw the next frame
-
-    if (elapsed > fpsInterval) {
-
-        // Get ready for next frame by setting then=now, but also adjust for your
-        // specified fpsInterval not being a multiple of RAF's interval (16.7ms)
-        then = now - (elapsed % fpsInterval);
-
-        // Put your drawing code here
-        draw();
-
-    }
-}
-
-
 function init() {
-    bird_img.src = 'data/bird3.png';
-    back.src = 'data/back3.png'
-    
-    startAnimating(10);
+    bird_img.src = 'data/bird4.png';
+    back.src = 'data/back5.png'
 }
 
 function draw() {
@@ -72,26 +76,32 @@ function draw() {
     //ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
     //ctx.strokeStyle = 'rgba(0, 153, 255, 0.4)';
 
-    ctx.drawImage(bird_img, i, 0, 85, 60, px, py, 85, 60);
-    i = (i+85)%255;
+    // write FPS
+    ctx.font = '18px Arial';
+    ctx.fillText('FPS: '+fps, 0, 18);
+
+    // Draw Tubes
+
+    // Draw players
+    ctx.drawImage(bird_img, i, 0, bird_img.width/3, bird_img.height, px, py, bird_img.width/3, bird_img.height);
+    i = (i+(bird_img.width/3))%bird_img.width;
+    
 
     // Draw Infinitely Scrolling Background
     // draw image 1
-    ctx.drawImage(back, 400-bx, 0);
- 
+    ctx.drawImage(back, back.width-bx, 0);
     // draw image 2
     ctx.drawImage(back, -bx, 0);
-
     // update image height
     bx += scrollSpeed;
-
     //resetting the images when the first image entirely exits the screen
-    if (bx == 400) {bx = 0;}
+    if (bx >= back.width) {bx = 0;}
 
-    
+    // Update FPS counter
+    const currentTime = performance.now();
+    fps = Math.round(1000 / (currentTime - lastTime));
+    lastTime = currentTime;
 
-    console.log('px '+px+' py '+py);
-    //window.requestAnimationFrame(draw);
 }
 
 init();

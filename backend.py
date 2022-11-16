@@ -144,6 +144,8 @@ class GameServer:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Backend server')
     parser.add_argument('-p', type=int, default=8765, help='server port')
+    parser.add_argument('-f', type=int, default=30, help='server fps')
+    parser.add_argument('-n', type=int, default=1, help='concurrent number of players')
     args = parser.parse_args()
 
     game = GameServer()

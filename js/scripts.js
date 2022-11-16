@@ -7,6 +7,7 @@ let bx = 0;
 let scrollSpeed = 5;
 let click = false;
 let fps = 0;
+let highscore = 0;
 let lastTime = performance.now();
 
 // Connection opened
@@ -26,6 +27,7 @@ socket.addEventListener('message', (event) => {
         px = player.px;
         py = player.py;
         }
+        highscore = data['highscore'];
         // Draw the scene
         requestAnimationFrame(draw);
     }
@@ -79,6 +81,9 @@ function draw() {
     // write FPS
     ctx.font = '18px Arial';
     ctx.fillText('FPS: '+fps, 0, 18);
+    
+    // write highscore
+    ctx.fillText('Highscore: '+highscore, 0, 36);
 
     // Draw Tubes
 

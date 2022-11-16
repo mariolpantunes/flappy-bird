@@ -44,7 +44,7 @@ async def main(args, loop):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Manual player agent')
+    parser = argparse.ArgumentParser(description='Player agent')
     parser.add_argument('-u', type=str, default='ws://localhost:8765/player', help='server url')
     args = parser.parse_args()
     

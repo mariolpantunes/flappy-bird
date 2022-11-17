@@ -5,7 +5,7 @@ import math
 import json
 import asyncio
 import logging
-import threading
+import argparse
 import websockets
 
 
@@ -28,16 +28,17 @@ class Player:
         self.highscore = 0
         self.done = False
     
-    def update(self, dt=1/30):
+    def update(self, dt=1):
         if self.click:
             self.click = False
-            self.a = max(-100, self.a-100)
-            self.v = 0.0
+            self.v = -25
+            self.a = 0
         else:
-            self.a = min(10, self.a + 10)
+            self.a = 10
         
         self.v = self.v + self.a * dt
         self.py = self.py + self.v * dt
+        logger.info(f'({self.py}, {self.v} {self.a})')
 
 
 class World:
@@ -56,7 +57,7 @@ class World:
         if ws in self.players:
             self.players[ws].click = True
     
-    def update(self, dt=1/30):
+    def update(self, dt=1/5):
         [p.update(dt) for p in self.players.values()]
         [p.update() for p in self.pipes]
     

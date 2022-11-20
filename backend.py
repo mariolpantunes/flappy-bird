@@ -17,7 +17,7 @@ wslogger.setLevel(logging.WARN)
 
 
 class Player:
-    def __init__(self, px=158, py=140):
+    def __init__(self, px=200, py=140):
         self.HEIGHT = 42
         self.WIDTH = 60
         self.px = px
@@ -28,7 +28,7 @@ class Player:
         self.highscore = 0
         self.done = False
     
-    def update(self, dt=1):
+    def update(self, dt):
         if self.click:
             self.click = False
             self.v = -25
@@ -44,7 +44,7 @@ class Player:
 class World:
     def __init__(self):
         self.HEIGHT = 400
-        self.WIDTH = 400
+        self.WIDTH = 580
         self.players = {}
         self.pipes = []
         self.highscore = 0
@@ -53,13 +53,17 @@ class World:
         if ws not in self.players:
             self.players[ws] = Player()
     
+    def number_players(self):
+        return len(self.players)
+    
     def player_click(self, ws):
         if ws in self.players:
             self.players[ws].click = True
     
-    def update(self, dt=1/5):
+    def update(self, dt=1/30):
+        dt *= 6.0
         [p.update(dt) for p in self.players.values()]
-        [p.update() for p in self.pipes]
+        [p.update(dt) for p in self.pipes]
     
     def collisions(self):
         # collisions with world
@@ -75,8 +79,8 @@ class World:
                 keys_to_remove.append(k)
         return keys_to_remove
 
-    def update_highscore(self):
-        self.highscore += 1
+    def update_highscore(self, dt=1/30):
+        self.highscore += dt
     
     def dump(self):
         return {'evt':'world_state',
@@ -109,15 +113,24 @@ class GameServer:
             if websocket in self.viewers:
                 self.viewers.remove(websocket)
     
-    async def mainloop(self):
+    async def mainloop(self, args):
+        
+        done = False
+        while not done:
+            # check if the have all the players
+            if self.world.number_players() >= args.n:
+                done = True
+            else:
+                await asyncio.sleep(1)
+        
         while True:
             # Update world state
-            self.world.update()
+            self.world.update(1/args.f)
             keys_to_remove = self.world.collisions()
             for k in keys_to_remove:
                 await k.send(json.dumps({'evt':'done','highscore':self.world.highscore}))
                 self.world.players.pop(k)
-            self.world.update_highscore()
+            self.world.update_highscore(1/args.f)
 
             # Get world state
             world_state = json.dumps(self.world.dump())
@@ -139,7 +152,7 @@ class GameServer:
                     players_to_remove.append(p)
             [self.world.players.pop(key) for key in players_to_remove]
                         
-            await asyncio.sleep(1/30)
+            await asyncio.sleep(1/args.f)
 
 
 if __name__ == '__main__':
@@ -150,8 +163,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     game = GameServer()
-    game_loop_task = asyncio.ensure_future(game.mainloop())
-    websocket_server = websockets.serve(game.incomming_handler, 'localhost', 8765)
+    game_loop_task = asyncio.ensure_future(game.mainloop(args))
+    websocket_server = websockets.serve(game.incomming_handler, 'localhost', args.p)
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(asyncio.gather(websocket_server, game_loop_task))

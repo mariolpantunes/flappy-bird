@@ -3,10 +3,14 @@ const socket_player = new WebSocket('ws://localhost:8765/player');
 
 let px = 158;
 let py = 140;
+
+const players = [];
+
 let bx = 0;
 let scrollSpeed = 5;
 let click = false;
 let fps = 0;
+let alive = 0;
 let highscore = 0;
 let lastTime = performance.now();
 
@@ -18,18 +22,24 @@ socket.addEventListener('open', (event) => {
 // Listen for messages
 socket.addEventListener('message', (event) => {
     const data = JSON.parse(event.data);
-    console.log('Message from server ', data);
+    //console.log('Message from server ', data);
     
     if(data.evt == 'world_state') {
         // Update the world state
-        if(data['players'].length > 0) {
-        player = data['players'][0]
-        px = player.px;
-        py = player.py;
+        world_state_players = data['players'];
+        if(world_state_players.length > 0) {
+            players.length = 0;
+            world_state_players.forEach(player => {
+                players.push([player.px, player.py]);
+            });
         }
-        highscore = data['highscore'];
+        alive = data['players'].length;
+        highscore = Math.round(data['highscore']);
+        
         // Draw the scene
         requestAnimationFrame(draw);
+    } else if (data.evt == 'world_state') {
+        console.log(data);
     }
 });
 
@@ -50,7 +60,7 @@ socket_player.addEventListener('open', (event) => {
 // Listen for messages
 socket_player.addEventListener('message', (event) => {
     const data = JSON.parse(event.data);
-    console.log('Message from server ', data);
+    //console.log('Message from server ', data);
     
     if(data.evt == 'world_state') {
         // Update the world state
@@ -65,18 +75,16 @@ const bird_img = new Image();
 const back = new Image();
 let i = 0;
 
-
 function init() {
     bird_img.src = 'data/bird4.png';
     back.src = 'data/back5.png'
 }
 
 function draw() {
-    const ctx = document.getElementById('canvas').getContext('2d');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
     ctx.globalCompositeOperation = 'destination-over';
-    ctx.clearRect(0, 0, 400, 400); // clear canvas
-    //ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-    //ctx.strokeStyle = 'rgba(0, 153, 255, 0.4)';
+    ctx.clearRect(0, 0, canvas.width, canvas.height); 
 
     // write FPS
     ctx.font = '18px Arial';
@@ -85,13 +93,19 @@ function draw() {
     // write highscore
     ctx.fillText('Highscore: '+highscore, 0, 36);
 
+    // write aline birds
+    ctx.fillText('Alive: '+alive, 0, 54);
+
     // Draw Tubes
 
     // Draw players
-    ctx.drawImage(bird_img, i, 0, bird_img.width/3, bird_img.height, px, py, bird_img.width/3, bird_img.height);
+    players.forEach(player => {
+        ctx.drawImage(bird_img, i, 0, bird_img.width/3, bird_img.height, player[0], player[1], bird_img.width/3, bird_img.height);
+    });
+    
+    
     i = (i+(bird_img.width/3))%bird_img.width;
     
-
     // Draw Infinitely Scrolling Background
     // draw image 1
     ctx.drawImage(back, back.width-bx, 0);
@@ -106,7 +120,6 @@ function draw() {
     const currentTime = performance.now();
     fps = Math.round(1000 / (currentTime - lastTime));
     lastTime = currentTime;
-
 }
 
 init();

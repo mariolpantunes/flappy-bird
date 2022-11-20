@@ -12,6 +12,7 @@ let click = false;
 let fps = 0;
 let alive = 0;
 let highscore = 0;
+let generation = 0;
 let lastTime = performance.now();
 
 // Connection opened
@@ -27,15 +28,20 @@ socket.addEventListener('message', (event) => {
     if(data.evt == 'world_state') {
         // Update the world state
         world_state_players = data['players'];
-        if(world_state_players.length > 0) {
-            players.length = 0;
-            world_state_players.forEach(player => {
-                players.push([player.px, player.py]);
-            });
-        }
-        alive = data['players'].length;
-        highscore = Math.round(data['highscore']);
         
+        if(Object.keys(world_state_players).length > 0) {
+            players.length = 0;
+            for (let k in world_state_players) {
+                let player = world_state_players[k];
+                players.push([player.px, player.py]);
+            }
+        }
+        alive = players.length;
+        highscore = Math.round(data['highscore']);
+        generation = data['generation'];
+        
+        //console.log(players);
+
         // Draw the scene
         requestAnimationFrame(draw);
     } else if (data.evt == 'world_state') {
@@ -49,7 +55,7 @@ function onMouseClick() {
     click = true;
 }
 
-
+/*
 // Connection opened
 socket_player.addEventListener('open', (event) => {
     socket_player.send(JSON.stringify({'cmd':'join'}));
@@ -69,7 +75,7 @@ socket_player.addEventListener('message', (event) => {
             click = false;
         }
     }
-});
+});*/
 
 const bird_img = new Image();
 const back = new Image();
@@ -93,8 +99,11 @@ function draw() {
     // write highscore
     ctx.fillText('Highscore: '+highscore, 0, 36);
 
-    // write aline birds
+    // write the number of birds that are alive
     ctx.fillText('Alive: '+alive, 0, 54);
+
+    // write the number of generation
+    ctx.fillText('Generation: '+generation, 0, 72);
 
     // Draw Tubes
 

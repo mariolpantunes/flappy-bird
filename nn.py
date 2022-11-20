@@ -1,13 +1,6 @@
 import numpy as np
 
 
-NN_ARCHITECTURE = [
-    {"input_dim": 6, "output_dim": 8, "activation": "relu"},
-    {"input_dim": 8, "output_dim": 8, "activation": "relu"},
-    {"input_dim": 8, "output_dim": 1, "activation": "sigmoid"}
-]
-
-
 class NN:
     def __init__(self, nn_architecture, seed=42):
         self.nn_architecture = nn_architecture
@@ -38,13 +31,13 @@ class NN:
             # extraction of W for the current layer
             W_curr = self.params_values["W" + str(layer_idx)]
             n_elems = W_curr.size
-            head = params[begin:n_elems]
+            head = params[begin:begin+n_elems]
             self.params_values["W" + str(layer_idx)] = head.reshape(W_curr.shape)
             begin += n_elems
             # extraction of b for the current layer
             b_curr = self.params_values["b" + str(layer_idx)]
-            n_elems = W_curr.size
-            head = params[begin:n_elems]
+            n_elems = b_curr.size
+            head = params[begin:begin+n_elems]
             self.params_values["b" + str(layer_idx)] = head
             begin += n_elems
         
@@ -98,13 +91,8 @@ def relu_backward(dA, Z):
 
 def single_layer_forward_propagation(A_prev, W_curr, b_curr, activation='relu'):
     # calculation of the input value for the activation function
-    
-    print(f'W/A:{W_curr} {A_prev}')
     Z_curr = np.dot(W_curr, A_prev) 
-    print(f'Z:{Z_curr}')
-    print(f'B:{b_curr}')
     Z_curr += b_curr
-    print(f'Z:{Z_curr}')
     
     # selection of activation function
     if activation == 'relu':
@@ -138,8 +126,6 @@ def full_forward_propagation(X, params_values, nn_architecture):
         # extraction of b for the current layer
         b_curr = params_values["b" + str(layer_idx)]
         # calculation of activation for the current layer
-
-        print(f'A:{A_prev} W:{W_curr} b:{b_curr}')
 
         A_curr, Z_curr = single_layer_forward_propagation(A_prev, W_curr, b_curr, activ_function_curr)
         
@@ -268,5 +254,17 @@ def train(X, Y, nn_architecture, epochs, learning_rate, verbose=False, callback=
                 print("Iteration: {:05} - cost: {:.5f} - accuracy: {:.5f}".format(i, cost, accuracy))
             if(callback is not None):
                 callback(i, params_values)
-            
     return params_values
+
+
+def network_size(nn_architecture):
+    size = 0
+    # iteration over network layers
+    for layer in nn_architecture:
+        # extracting the number of units in layers
+        layer_input_size = layer["input_dim"]
+        layer_output_size = layer["output_dim"]
+        
+        size += layer_output_size*layer_input_size
+        size += layer_output_size
+    return size

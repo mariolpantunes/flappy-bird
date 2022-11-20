@@ -8,6 +8,75 @@ NN_ARCHITECTURE = [
 ]
 
 
+class NN:
+    def __init__(self, nn_architecture, seed=42):
+        self.nn_architecture = nn_architecture
+        self.params_values = init_layers(self.nn_architecture, seed)
+
+    def predict(self, X):
+        A_curr, _ = full_forward_propagation(X, self.params_values, self.nn_architecture)
+        return A_curr
+    
+    def ravel(self):
+        array = []
+        for idx, layer in enumerate(self.nn_architecture):
+            # we number network layers from 1
+            layer_idx = idx + 1
+            # extraction of W for the current layer
+            W_curr = self.params_values["W" + str(layer_idx)]
+            # extraction of b for the current layer
+            b_curr = self.params_values["b" + str(layer_idx)]
+            array.extend(W_curr.ravel())
+            array.extend(b_curr.ravel())
+        return np.array(array)
+
+    def update(self, params):
+        begin = 0
+        for idx, layer in enumerate(self.nn_architecture):
+            # we number network layers from 1
+            layer_idx = idx + 1
+            # extraction of W for the current layer
+            W_curr = self.params_values["W" + str(layer_idx)]
+            n_elems = W_curr.size
+            head = params[begin:n_elems]
+            self.params_values["W" + str(layer_idx)] = head.reshape(W_curr.shape)
+            begin += n_elems
+            # extraction of b for the current layer
+            b_curr = self.params_values["b" + str(layer_idx)]
+            n_elems = W_curr.size
+            head = params[begin:n_elems]
+            self.params_values["b" + str(layer_idx)] = head
+            begin += n_elems
+        
+    def __str__(self):
+        return str({'ARCHITECTURE':self.nn_architecture,'PARAMETERS':self.params_values})
+
+
+def init_layers(nn_architecture, seed = 42):
+    # random seed initiation
+    np.random.seed(seed)
+    # number of layers in our neural network
+    number_of_layers = len(nn_architecture)
+    # parameters storage initiation
+    params_values = {}
+    
+    # iteration over network layers
+    for idx, layer in enumerate(nn_architecture):
+        # we number network layers from 1
+        layer_idx = idx + 1
+        
+        # extracting the number of units in layers
+        layer_input_size = layer["input_dim"]
+        layer_output_size = layer["output_dim"]
+        
+        # initiating the values of the W matrix
+        # and vector b for subsequent layers
+        params_values['W' + str(layer_idx)] = np.random.randn(layer_output_size, layer_input_size) * 0.1
+        params_values['b' + str(layer_idx)] = np.random.randn(layer_output_size) * 0.1
+        
+    return params_values
+
+
 def sigmoid(Z):
     return 1/(1+np.exp(-Z))
 
@@ -25,6 +94,28 @@ def relu_backward(dA, Z):
     dZ = np.array(dA, copy = True)
     dZ[Z <= 0] = 0
     return dZ
+
+
+def single_layer_forward_propagation(A_prev, W_curr, b_curr, activation='relu'):
+    # calculation of the input value for the activation function
+    
+    print(f'W/A:{W_curr} {A_prev}')
+    Z_curr = np.dot(W_curr, A_prev) 
+    print(f'Z:{Z_curr}')
+    print(f'B:{b_curr}')
+    Z_curr += b_curr
+    print(f'Z:{Z_curr}')
+    
+    # selection of activation function
+    if activation == 'relu':
+        activation_func = relu
+    elif activation == 'sigmoid':
+        activation_func = sigmoid
+    else:
+        raise Exception('Non-supported activation function')
+        
+    # return of calculated activation A and the intermediate Z matrix
+    return activation_func(Z_curr), Z_curr
 
 
 def full_forward_propagation(X, params_values, nn_architecture):
@@ -47,6 +138,9 @@ def full_forward_propagation(X, params_values, nn_architecture):
         # extraction of b for the current layer
         b_curr = params_values["b" + str(layer_idx)]
         # calculation of activation for the current layer
+
+        print(f'A:{A_prev} W:{W_curr} b:{b_curr}')
+
         A_curr, Z_curr = single_layer_forward_propagation(A_prev, W_curr, b_curr, activ_function_curr)
         
         # saving calculated values in the memory
@@ -79,12 +173,36 @@ def get_accuracy_value(Y_hat, Y):
 
 
 def update(params_values, grads_values, nn_architecture, learning_rate):
-
     # iteration over network layers
     for layer_idx, layer in enumerate(nn_architecture, 1):
         params_values["W" + str(layer_idx)] -= learning_rate * grads_values["dW" + str(layer_idx)]        
         params_values["b" + str(layer_idx)] -= learning_rate * grads_values["db" + str(layer_idx)]
     return params_values
+
+
+def single_layer_backward_propagation(dA_curr, W_curr, b_curr, Z_curr, A_prev, activation="relu"):
+    # number of examples
+    m = A_prev.shape[1]
+    
+    # selection of activation function
+    if activation == 'relu':
+        backward_activation_func = relu_backward
+    elif activation == 'sigmoid':
+        backward_activation_func = sigmoid_backward
+    else:
+        raise Exception('Non-supported activation function')
+    
+    # calculation of the activation function derivative
+    dZ_curr = backward_activation_func(dA_curr, Z_curr)
+    
+    # derivative of the matrix W
+    dW_curr = np.dot(dZ_curr, A_prev.T) / m
+    # derivative of the vector b
+    db_curr = np.sum(dZ_curr, axis=1, keepdims=True) / m
+    # derivative of the matrix A_prev
+    dA_prev = np.dot(W_curr.T, dZ_curr)
+
+    return dA_prev, dW_curr, db_curr
 
 
 def full_backward_propagation(Y_hat, Y, memory, params_values, nn_architecture):
@@ -119,33 +237,6 @@ def full_backward_propagation(Y_hat, Y, memory, params_values, nn_architecture):
         grads_values["db" + str(layer_idx_curr)] = db_curr
     
     return grads_values
-
-
-def init_layers(nn_architecture, seed = 42):
-    # random seed initiation
-    np.random.seed(seed)
-    # number of layers in our neural network
-    number_of_layers = len(nn_architecture)
-    # parameters storage initiation
-    params_values = {}
-    
-    # iteration over network layers
-    for idx, layer in enumerate(nn_architecture):
-        # we number network layers from 1
-        layer_idx = idx + 1
-        
-        # extracting the number of units in layers
-        layer_input_size = layer["input_dim"]
-        layer_output_size = layer["output_dim"]
-        
-        # initiating the values of the W matrix
-        # and vector b for subsequent layers
-        params_values['W' + str(layer_idx)] = np.random.randn(
-            layer_output_size, layer_input_size) * 0.1
-        params_values['b' + str(layer_idx)] = np.random.randn(
-            layer_output_size, 1) * 0.1
-        
-    return params_values
 
 
 def train(X, Y, nn_architecture, epochs, learning_rate, verbose=False, callback=None):

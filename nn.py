@@ -74,19 +74,28 @@ def sigmoid(Z):
     return 1/(1+np.exp(-Z))
 
 
-def relu(Z):
-    return np.maximum(0,Z)
-
-
 def sigmoid_backward(dA, Z):
     sig = sigmoid(Z)
     return dA * sig * (1 - sig)
+
+
+def relu(Z):
+    return np.maximum(0,Z)
 
 
 def relu_backward(dA, Z):
     dZ = np.array(dA, copy = True)
     dZ[Z <= 0] = 0
     return dZ
+
+
+def swish(Z):
+    return Z*sigmoid(Z)
+
+
+def swish_backward(dA, Z):
+    sig = sigmoid(Z)
+    return dA * (sig * (1+Z*(1-sig)))
 
 
 def single_layer_forward_propagation(A_prev, W_curr, b_curr, activation='relu'):
@@ -99,6 +108,8 @@ def single_layer_forward_propagation(A_prev, W_curr, b_curr, activation='relu'):
         activation_func = relu
     elif activation == 'sigmoid':
         activation_func = sigmoid
+    elif activation == 'swish':
+        activation_func = swish
     else:
         raise Exception('Non-supported activation function')
         
@@ -175,6 +186,8 @@ def single_layer_backward_propagation(dA_curr, W_curr, b_curr, Z_curr, A_prev, a
         backward_activation_func = relu_backward
     elif activation == 'sigmoid':
         backward_activation_func = sigmoid_backward
+    elif activation == 'swish':
+        backward_activation_func = swish_backward
     else:
         raise Exception('Non-supported activation function')
     

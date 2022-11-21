@@ -15,10 +15,10 @@ logger = logging.getLogger(__name__)
 wslogger = logging.getLogger('websockets')
 wslogger.setLevel(logging.WARN)
 
-#{"input_dim": 2, "output_dim": 2, "activation": "relu"},
-#{"input_dim": 2, "output_dim": 2, "activation": "relu"},
+
 NN_ARCHITECTURE = [
-    {"input_dim": 2, "output_dim": 1, "activation": "sigmoid"}
+    {'input_dim': 2, 'output_dim': 2, 'activation': 'swish'},
+    {'input_dim': 2, 'output_dim': 1, 'activation': 'sigmoid'}
 ]
 
 
@@ -37,11 +37,6 @@ async def player_game(perceptron):
                     await websocket.send(json.dumps({'cmd':'click'}))
             elif data['evt'] == 'done':
                 return data['highscore']
-
-            
-            
-            #logger.info(data)
-
 
 
 def objective(p):
@@ -66,7 +61,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train agents')
     #parser.add_argument('-u', type=str, default='ws://localhost:8765/player', help='server url')
-    parser.add_argument('-v', type=str, help='DE variant', default='best/3/bin')
+    parser.add_argument('-v', type=str, help='DE variant', default='best/1/bin')
     parser.add_argument('-l', type=int, help='number of loops (iterations)', default=10)
     parser.add_argument('-p', type=int, help='population size', default=10)
     args = parser.parse_args()

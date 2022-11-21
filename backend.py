@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-
+import time
 import math
 import json
 import asyncio
@@ -137,6 +137,7 @@ class GameServer:
             
             done = False
             while not done:
+                t = time.perf_counter()
                 # Update world state
                 self.world.update(1/args.f)
                 keys_to_remove = self.world.collisions()
@@ -176,7 +177,8 @@ class GameServer:
                     for p in players_to_remove:
                         await p.send(json.dumps({'evt':'done','highscore':self.world.highscore}))
                         self.world.players.pop(p)
-                await asyncio.sleep(1/args.f)
+                delay = max(0, 1/args.f-(time.perf_counter() - t))
+                await asyncio.sleep(delay)
 
 
 if __name__ == '__main__':

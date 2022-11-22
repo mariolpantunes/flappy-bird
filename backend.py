@@ -3,6 +3,7 @@
 import time
 import math
 import json
+import random
 import asyncio
 import logging
 import argparse
@@ -44,19 +45,22 @@ class Player:
 
 class Pipe:
     def __init__(self, px, py):
-        self.HEIGHT = 247 
+        self.HEIGHT = 355 
         self.WIDTH = 60
         self.GAP = 100
+        self.HEAD = 30
         self.px = px
         self.py_top = py
         self.py_bottom = py+self.GAP
-        self.v = -5
+        self.v = -10
     
     def update(self, dt):
         self.px = self.px + self.v * dt
     
     def __str__(self):
         return f'[{self.px} {self.py_top} {self.py_bottom}]'
+
+
 
 
 class World:
@@ -89,22 +93,22 @@ class World:
         
         # generate new pipe
         if len(self.pipes) < 3:
-            logger.info(f'New Pipe generated')
             if self.pipes:
-                self.pipes.append(Pipe(self.pipes[-1].px+290, 100))
+                previous_pipe = self.pipes[-1]
+                lower_limit = max(previous_pipe.HEAD,previous_pipe.py_top-(previous_pipe.GAP/2))
+                upper_limit = min(self.HEIGHT-previous_pipe.HEAD-previous_pipe.GAP,
+                previous_pipe.py_top+(previous_pipe.GAP/2))
+                py = random.randint(lower_limit, upper_limit)
+                self.pipes.append(Pipe(previous_pipe.px+290, py))
             else:
-                self.pipes.append(Pipe(self.WIDTH, 100))
+                self.pipes.append(Pipe(self.WIDTH, 150))
         
         # update the pipes position
         [p.update(dt) for p in self.pipes]
 
-        for pipe in self.pipes:
-            logger.info(pipe)
-
         # check if first pipe can be removed
         if self.pipes:
             if self.pipes[0].px+self.pipes[0].WIDTH <=0:
-                logger.info('Remove pipe')
                 self.pipes.pop(0)
 
     

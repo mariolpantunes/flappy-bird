@@ -17,6 +17,10 @@ wslogger = logging.getLogger('websockets')
 wslogger.setLevel(logging.WARN)
 
 
+def rect_rect_collision(r1, r2):
+    return r1.x < r2.x + r2.w and r1.x + r1.w > r2.x and r1.y < r2.y + r.h and r1.h + r1.y > r2.y
+
+
 class Player:
     def __init__(self, uuid, px=200, py=140):
         self.HEIGHT = 42

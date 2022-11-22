@@ -42,6 +42,23 @@ class Player:
         #logger.info(f'({self.py}, {self.v} {self.a})')
 
 
+class Pipe:
+    def __init__(self, px, py):
+        self.HEIGHT = 247 
+        self.WIDTH = 60
+        self.GAP = 100
+        self.px = px
+        self.py_top = py
+        self.py_bottom = py+self.GAP
+        self.v = -5
+    
+    def update(self, dt):
+        self.px = self.px + self.v * dt
+    
+    def __str__(self):
+        return f'[{self.px} {self.py_top} {self.py_bottom}]'
+
+
 class World:
     def __init__(self):
         self.HEIGHT = 400
@@ -69,17 +86,35 @@ class World:
     def update(self, dt=1/30):
         dt *= 6.0
         [p.update(dt) for p in self.players.values()]
+        
+        # generate new pipe
+        if len(self.pipes) < 3:
+            logger.info(f'New Pipe generated')
+            if self.pipes:
+                self.pipes.append(Pipe(self.pipes[-1].px+290, 100))
+            else:
+                self.pipes.append(Pipe(self.WIDTH, 100))
+        
+        # update the pipes position
         [p.update(dt) for p in self.pipes]
+
+        for pipe in self.pipes:
+            logger.info(pipe)
+
+        # check if first pipe can be removed
+        if self.pipes:
+            if self.pipes[0].px+self.pipes[0].WIDTH <=0:
+                logger.info('Remove pipe')
+                self.pipes.pop(0)
+
     
     def collisions(self):
         # collisions with world
-
         keys_to_remove = []
 
         for k in self.players:
             p = self.players[k]
             if p.py < 0 or (p.py+p.HEIGHT) > self.HEIGHT:
-                logger.info('collision...')
                 #p.py = 0 if p.py < 0 else self.HEIGHT-p.HEIGHT
                 #p.dead(self.highscore)
                 keys_to_remove.append(k)
@@ -95,7 +130,8 @@ class World:
         return {'evt':'world_state',
         'highscore':self.highscore,
         'generation':self.generation,
-        'players':players}
+        'players':players,
+        'pipes':[{'px':p.px,'py_t':p.py_top,'py_b':p.py_bottom} for p in self. pipes]}
 
 
 class GameServer:
@@ -107,7 +143,7 @@ class GameServer:
     async def incomming_handler(self, websocket, path):
         try:
             async for message in websocket:
-                logger.info(message)
+                #logger.info(message)
                 data = json.loads(message)
                 if data['cmd'] == 'join':
                     if path == '/viewer':

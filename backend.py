@@ -8,17 +8,27 @@ import asyncio
 import logging
 import argparse
 import websockets
+import dataclasses
 
 
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 logger = logging.getLogger(__name__)
 
+
 wslogger = logging.getLogger('websockets')
 wslogger.setLevel(logging.WARN)
 
 
+@dataclasses.dataclass
+class Rect:
+    x: int = 0
+    y: int = 0
+    w: int = 0
+    h: int = 0
+
+
 def rect_rect_collision(r1, r2):
-    return r1.x < r2.x + r2.w and r1.x + r1.w > r2.x and r1.y < r2.y + r.h and r1.h + r1.y > r2.y
+    return r1.x < r2.x + r2.w and r1.x + r1.w > r2.x and r1.y < r2.y + r2.h and r1.h + r1.y > r2.y
 
 
 class Player:
@@ -61,10 +71,23 @@ class Pipe:
     def update(self, dt):
         self.px = self.px + self.v * dt
     
+    def collisions(self, players, world_height):
+        keys_to_remove = []
+        
+        rect_top = Rect(self.px, 0, self.WIDTH, self.py_top)
+        rect_bottom = Rect(self.px, self.py_bottom, self.WIDTH, world_height-self.py_bottom)
+
+        for k in players:
+            p = players[k]
+            rect_player = Rect(p.px, p.py, p.WIDTH, p.HEIGHT)
+
+            if rect_rect_collision(rect_player, rect_top) or rect_rect_collision(rect_player, rect_bottom):
+                keys_to_remove.append(k)
+        
+        return keys_to_remove
+    
     def __str__(self):
         return f'[{self.px} {self.py_top} {self.py_bottom}]'
-
-
 
 
 class World:
@@ -79,6 +102,7 @@ class World:
     def reset(self):
         self.highscore = 0
         self.generation += 1
+        self.pipes.clear()
 
     def add_player(self, ws, uuid):
         if ws not in self.players:
@@ -117,15 +141,32 @@ class World:
 
     
     def collisions(self):
-        # collisions with world
-        keys_to_remove = []
+        keys_to_remove = set()
+        
+        # collisions with pipes
+        if self.pipes:
+            # all the players have the same px
+            random_player = list(self.players.values())[0]
+            # select pipe
+            closest_pipe = None
+            closest_distance = self.WIDTH
+            for pipe in self.pipes:
+                if pipe.px+pipe.WIDTH > random_player.px:
+                    # pipe in front
+                    distance = pipe.px-random_player.px
+                    if distance < closest_distance:
+                        closest_pipe = pipe
+                        closest_distance = distance
+            keys_to_remove.update(closest_pipe.collisions(self.players, self.HEIGHT))
 
+        # collisions with world
         for k in self.players:
             p = self.players[k]
             if p.py < 0 or (p.py+p.HEIGHT) > self.HEIGHT:
                 #p.py = 0 if p.py < 0 else self.HEIGHT-p.HEIGHT
                 #p.dead(self.highscore)
-                keys_to_remove.append(k)
+                keys_to_remove.add(k)
+        
         return keys_to_remove
 
     def update_highscore(self, dt=1/30):

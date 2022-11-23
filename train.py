@@ -1,6 +1,10 @@
+#!/usr/bin/env python
+
+
 import nn
 import uuid
 import json
+import pickle
 import asyncio
 import logging
 import argparse
@@ -48,29 +52,37 @@ async def player_game(perceptron):
 
 def objective(p):
     #print(f'Parameters: {p}')
-    perceptron = nn.NN(NN_ARCHITECTURE)
+    model = nn.NN(NN_ARCHITECTURE)
     # TODO: have to fix
     if type(p) == list:
-        perceptron.update(np.array(p))
+        model.update(np.array(p))
     else:
-        perceptron.update(p)
-    highscore = asyncio.run(player_game(perceptron))
+        model.update(p)
+    highscore = asyncio.run(player_game(model))
     #print(f'Highscore {highscore}')
-    return 30-highscore
+    return -highscore
+
+
+def store_data(model, parameters, path:str):
+    with open(path, 'wb') as f:
+        pickle.dump({'model':model, 'parameters':parameters}, f)
 
 
 def main(args):
     bounds = np.asarray([[-1.0, 1.0]]*nn.network_size(NN_ARCHITECTURE))
     best, _, debug = de.differential_evolution(objective, bounds,
     variant=args.v, n_iter=args.l, n_pop=args.p, n_jobs=args.p, cached=False, debug=True)
+    # store the best model
+    store_data(NN_ARCHITECTURE, best, args.o)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train agents')
     #parser.add_argument('-u', type=str, default='ws://localhost:8765/player', help='server url')
-    parser.add_argument('-v', type=str, help='DE variant', default='best/1/bin')
-    parser.add_argument('-l', type=int, help='number of loops (iterations)', default=10)
-    parser.add_argument('-p', type=int, help='population size', default=10)
+    parser.add_argument('-v', type=str, help='DE variant', default='best/3/bin')
+    parser.add_argument('-l', type=int, help='number of loops (iterations)', default=30)
+    parser.add_argument('-p', type=int, help='population size', default=30)
+    parser.add_argument('-o', type=str, help='store the best model')
     args = parser.parse_args()
 
     main(args)

@@ -6,9 +6,14 @@ const pipes = [];
 
 let animation_position = {};
 
+const player_v = 60;
+const background_v = 150;
+
 let bx = 0;
 let scrollSpeed = 5;
-let click = false;
+
+//let click = false;
+
 let fps = 0;
 let alive = 0;
 let highscore = 0;
@@ -53,8 +58,9 @@ socket.addEventListener('message', (event) => {
         players.forEach(function(p){
             let key = p[0];
             if(p[3]<0) {
-                let previous_i = (animation_position[key] ?? -1);
-                new_animation_position[key] = (previous_i + 1) % 3;
+                let previous_i = (animation_position[key] ?? 0) + player_v * (1.0/fps);
+                new_animation_position[key] = Math.round(previous_i) < 3 ? previous_i : 0;
+                //(previous_i + 1) % 3;
             } else {
                 let previous_i = (animation_position[key] ?? 0);
                 new_animation_position[key] = previous_i;
@@ -62,8 +68,6 @@ socket.addEventListener('message', (event) => {
         });
         console.log(new_animation_position);
         animation_position = new_animation_position;
-
-        // Update the background with dt
 
         // Draw the scene
         requestAnimationFrame(draw);
@@ -141,7 +145,7 @@ function draw() {
 
     // Draw players
     players.forEach(player => {
-        let i = animation_position[player[0]]*(bird_img.width/3);
+        let i = Math.round(animation_position[player[0]])*(bird_img.width/3);
         ctx.drawImage(bird_img, i, 0, bird_img.width/3, bird_img.height, player[1], player[2], bird_img.width/3, bird_img.height);
     });
     
@@ -150,11 +154,12 @@ function draw() {
     
     // Draw Infinitely Scrolling Background
     // draw image 1
-    ctx.drawImage(back_img, back_img.width-bx, 0);
+    bx_int = Math.round(bx);
+    ctx.drawImage(back_img, back_img.width-bx_int, 0);
     // draw image 2
-    ctx.drawImage(back_img, -bx, 0);
+    ctx.drawImage(back_img, -bx_int, 0);
     // update image height
-    bx += scrollSpeed;
+    bx = bx + background_v*(1/fps);//scrollSpeed;
     //resetting the images when the first image entirely exits the screen
     if (bx >= back_img.width) {bx = 0;}
 

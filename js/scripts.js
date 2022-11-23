@@ -4,9 +4,16 @@ const socket_player = new WebSocket('ws://localhost:8765/player');
 const players = [];
 const pipes = [];
 
+let animation_position = {};
+
+const player_v = 60;
+const background_v = 150;
+
 let bx = 0;
 let scrollSpeed = 5;
-let click = false;
+
+//let click = false;
+
 let fps = 0;
 let alive = 0;
 let highscore = 0;
@@ -22,7 +29,6 @@ socket.addEventListener('open', (event) => {
 socket.addEventListener('message', (event) => {
     const data = JSON.parse(event.data);
     //console.log('Message from server ', data);
-    
     if(data.evt == 'world_state') {
         // Update the world state
         world_state_players = data['players'];
@@ -32,7 +38,7 @@ socket.addEventListener('message', (event) => {
             players.length = 0;
             for (let k in world_state_players) {
                 let player = world_state_players[k];
-                players.push([player.px, player.py]);
+                players.push([k, player.px, player.py, player.v]);
             }
         }
         // Get the pipes information
@@ -43,9 +49,25 @@ socket.addEventListener('message', (event) => {
                 pipes.push([pipe.px, pipe.py_t, pipe.py_b]);
             }
         }
+        // Get the debug information
         alive = players.length;
         highscore = Math.round(data['highscore']);
         generation = data['generation'];
+        // Get the animation position of each bird
+        let new_animation_position = {}
+        players.forEach(function(p){
+            let key = p[0];
+            if(p[3]<0) {
+                let previous_i = (animation_position[key] ?? 0) + player_v * (1.0/fps);
+                new_animation_position[key] = Math.round(previous_i) < 3 ? previous_i : 0;
+                //(previous_i + 1) % 3;
+            } else {
+                let previous_i = (animation_position[key] ?? 0);
+                new_animation_position[key] = previous_i;
+            }
+        });
+        console.log(new_animation_position);
+        animation_position = new_animation_position;
 
         // Draw the scene
         requestAnimationFrame(draw);
@@ -123,19 +145,21 @@ function draw() {
 
     // Draw players
     players.forEach(player => {
-        ctx.drawImage(bird_img, i, 0, bird_img.width/3, bird_img.height, player[0], player[1], bird_img.width/3, bird_img.height);
+        let i = Math.round(animation_position[player[0]])*(bird_img.width/3);
+        ctx.drawImage(bird_img, i, 0, bird_img.width/3, bird_img.height, player[1], player[2], bird_img.width/3, bird_img.height);
     });
     
     // TODO: fix this
-    i = (i+(bird_img.width/3))%bird_img.width;
+    //i = (i+(bird_img.width/3))%bird_img.width;
     
     // Draw Infinitely Scrolling Background
     // draw image 1
-    ctx.drawImage(back_img, back_img.width-bx, 0);
+    bx_int = Math.round(bx);
+    ctx.drawImage(back_img, back_img.width-bx_int, 0);
     // draw image 2
-    ctx.drawImage(back_img, -bx, 0);
+    ctx.drawImage(back_img, -bx_int, 0);
     // update image height
-    bx += scrollSpeed;
+    bx = bx + background_v*(1/fps);//scrollSpeed;
     //resetting the images when the first image entirely exits the screen
     if (bx >= back_img.width) {bx = 0;}
 

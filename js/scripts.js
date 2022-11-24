@@ -7,7 +7,7 @@ const pipes = [];
 let animation_position = {};
 
 const player_v = 60;
-const background_v = 150;
+const background_v = 25;
 
 let bx = 0;
 let scrollSpeed = 5;

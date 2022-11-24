@@ -254,7 +254,7 @@ class GameServer:
                 # check if the stopping criteria
                 if self.world.number_players() == 0:
                     done = True
-                elif self.world.highscore >= args.l:
+                elif args.l > 0 and  self.world.highscore >= args.l:
                     done = True
                     # remove all the players
                     players_to_remove = []
@@ -278,7 +278,7 @@ if __name__ == '__main__':
     parser.add_argument('-p', type=int, default=8765, help='server port')
     parser.add_argument('-f', type=int, default=30, help='server fps')
     parser.add_argument('-n', type=int, default=1, help='concurrent number of players')
-    parser.add_argument('-l', type=int, default=30, help='limit the highscore')
+    parser.add_argument('-l', type=int, default=-1, help='limit the highscore')
     args = parser.parse_args()
 
     asyncio.run(main(args))

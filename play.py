@@ -40,7 +40,8 @@ async def player_game(model):
                         closest_pipe = pipe
                         break
                 
-                X = [player['py'], player['v'], pipe['py_t'], pipe['py_b']]
+                c =  pipe['py_t'] + pipe['py_b'] / 2
+                X = [player['py'], player['v'], c, pipe['px']]
                 p = model.predict(X)
                 if p[0] >= 0.5:
                     await websocket.send(json.dumps({'cmd':'click'}))

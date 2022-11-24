@@ -39,8 +39,8 @@ async def player_game(model):
                     if pipe['px']+60 > player['px']:
                         closest_pipe = pipe
                         break
-                
-                X = np.array([player['py'], player['v'], pipe['py_t'], pipe['py_b']])
+
+                X = [player['py'], player['v'], pipe['py_t'], pipe['py_b']]
                 p = model.predict(X)
                 if p[0] >= 0.5:
                     await websocket.send(json.dumps({'cmd':'click'}))

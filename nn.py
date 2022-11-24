@@ -1,4 +1,9 @@
+import warnings
 import numpy as np
+
+
+# suppress warnings
+warnings.filterwarnings('ignore')
 
 
 class NN:

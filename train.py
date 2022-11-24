@@ -21,8 +21,8 @@ wslogger.setLevel(logging.WARN)
 
 
 NN_ARCHITECTURE = [
-    {'input_dim': 4, 'output_dim': 2, 'activation': 'swish'},
-    {'input_dim': 2, 'output_dim': 1, 'activation': 'sigmoid'}
+    {'input_dim': 4, 'output_dim': 4, 'activation': 'relu'},
+    {'input_dim': 4, 'output_dim': 1, 'activation': 'sigmoid'}
 ]
 
 
@@ -42,7 +42,9 @@ async def player_game(perceptron):
                         closest_pipe = pipe
                         break
                 
-                X = np.array([player['py'], player['v'], pipe['py_t'], pipe['py_b']])
+                c =  pipe['py_t'] + pipe['py_b'] / 2
+
+                X = np.array([player['py'], player['v'], c, pipe['px']])
                 p = perceptron.predict(X)
                 if p[0] >= 0.5:
                     await websocket.send(json.dumps({'cmd':'click'}))

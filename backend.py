@@ -266,6 +266,13 @@ class GameServer:
                 await asyncio.sleep(delay)
 
 
+async def main(args):
+    game = GameServer()
+    websocket_server = websockets.serve(game.incomming_handler, 'localhost', args.p)
+    game_loop_task = asyncio.create_task(game.mainloop(args))
+    await asyncio.gather(websocket_server, game_loop_task)
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Backend server')
     parser.add_argument('-p', type=int, default=8765, help='server port')
@@ -274,10 +281,4 @@ if __name__ == '__main__':
     parser.add_argument('-l', type=int, default=30, help='limit the highscore')
     args = parser.parse_args()
 
-    game = GameServer()
-    game_loop_task = asyncio.ensure_future(game.mainloop(args))
-    websocket_server = websockets.serve(game.incomming_handler, 'localhost', args.p)
-
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(asyncio.gather(websocket_server, game_loop_task))
-    loop.close()
+    asyncio.run(main(args))

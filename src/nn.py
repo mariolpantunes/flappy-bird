@@ -7,15 +7,53 @@ warnings.filterwarnings('ignore')
 
 
 class NN:
+    '''
+    Neural Network (NN) helper class.
+
+    It has been devised to be used in a neuroevolution training scheme.
+    This means that the traditional backpropagation algorithm is not available.
+    It offers two other methods namely ravel and update.
+    Ravel reduces the NN to a 1D  vector.
+    The update method receives a 1D vector and loads the values into a network.
+    '''
     def __init__(self, nn_architecture, seed=42):
+        '''
+        Constructor for a NN object.
+
+        Requires the definition of the network as follows::
+        
+            NN_ARCHITECTURE = [
+            {'input_dim': 4, 'output_dim': 2, 'activation': 'relu'},
+            {'input_dim': 2, 'output_dim': 1, 'activation': 'sigmoid'}
+            ]
+        
+        Args:
+            nn_architecture: neural network definition
+            seed: seed for the random generator used in the network initialization      
+        '''
         self.nn_architecture = nn_architecture
         self.params_values = init_layers(self.nn_architecture, seed)
 
     def predict(self, X):
+        '''
+        Implements the forward propagation algorithm for a Neural Network.
+
+        Args:
+            X: 1D vector that is the input of the network
+        
+        Returns:
+            The output of the network
+        '''
         A_curr, _ = full_forward_propagation(X, self.params_values, self.nn_architecture)
         return A_curr
     
     def ravel(self):
+        '''
+        Reduces the network into a 1D vector.
+
+        Returns:
+            A 1D vector that represents the network
+        '''
         array = []
         for idx, layer in enumerate(self.nn_architecture):
             # we number network layers from 1
@@ -29,6 +67,12 @@ class NN:
         return np.array(array)
 
     def update(self, params):
+        '''
+        Loads a 1D vector into a network.
+
+        Args:
+            params: 1D vector that contains the weights and bias of the network
+        '''
         begin = 0
         for idx, layer in enumerate(self.nn_architecture):
             # we number network layers from 1
@@ -47,10 +91,23 @@ class NN:
             begin += n_elems
         
     def __str__(self):
+        '''
+        Generates a str with the structure of the network.
+
+        Returns:
+            A str with the structure of the network
+        '''
         return str({'ARCHITECTURE':self.nn_architecture,'PARAMETERS':self.params_values})
 
 
 def init_layers(nn_architecture, seed = 42):
+    '''
+    Given a network definition it creates and initializes a new network.
+
+    Args:
+        nn_architecture: neural network definition
+        seed: seed for the random generator used in the network initialization
+    '''
     # random seed initiation
     np.random.seed(seed)
     # number of layers in our neural network
@@ -76,34 +133,103 @@ def init_layers(nn_architecture, seed = 42):
 
 
 def sigmoid(Z):
+    '''
+    Computes the sigmoid function for a 1D vector.
+
+    Args:
+        Z: 1D input vector
+    
+    Returns:
+        1D vector with the results of the sigmoid operation
+    '''
     return 1/(1+np.exp(-Z))
 
 
 def sigmoid_backward(dA, Z):
+    '''
+    Computes the backpropagation step for the sigmoid function.
+
+    Args:
+        dA: derivative of the previous layer
+        Z: 1D input vector
+    
+    Returns:
+        1D vector with the results of the backpropagation step
+    '''
     sig = sigmoid(Z)
     return dA * sig * (1 - sig)
 
 
 def relu(Z):
+    '''
+    Computes the relu function for a 1D vector.
+
+    Args:
+        Z: 1D input vector
+    
+    Returns:
+        1D vector with the results of the relu operation
+    '''
     return np.maximum(0,Z)
 
 
 def relu_backward(dA, Z):
+    '''
+    Computes the backpropagation step for the relu function.
+
+    Args:
+        dA: derivative of the previous layer
+        Z: 1D input vector
+    
+    Returns:
+        1D vector with the results of the backpropagation step
+    '''
     dZ = np.array(dA, copy = True)
     dZ[Z <= 0] = 0
     return dZ
 
 
 def swish(Z):
+    '''
+    Computes the swish function for a 1D vector.
+
+    Args:
+        Z: 1D input vector
+    
+    Returns:
+        1D vector with the results of the swish operation
+    '''
     return Z*sigmoid(Z)
 
 
 def swish_backward(dA, Z):
+    '''
+    Computes the backpropagation step for the swish function.
+
+    Args:
+        dA: derivative of the previous layer
+        Z: 1D input vector
+    
+    Returns:
+        1D vector with the results of the backpropagation step
+    '''
     sig = sigmoid(Z)
     return dA * (sig * (1+Z*(1-sig)))
 
 
 def single_layer_forward_propagation(A_prev, W_curr, b_curr, activation='relu'):
+    '''
+    Computes a single step of the forward propagation algorithm.
+
+    Args:
+        A_prev:
+        W_curr:
+        b_curr:
+        activation:
+
+    Returns:
+        
+    '''
     # calculation of the input value for the activation function
     Z_curr = np.dot(W_curr, A_prev) 
     Z_curr += b_curr

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 
-import nn
 import uuid
 import json
 import pickle
@@ -10,6 +9,7 @@ import logging
 import argparse
 import websockets
 import numpy as np
+import src.nn as nn
 import optimization.de as de
 
 

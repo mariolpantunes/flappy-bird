@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 
-import nn
 import uuid
 import json
 import pickle
@@ -9,6 +8,7 @@ import asyncio
 import logging
 import argparse
 import websockets
+import src.nn as nn
 
 
 logging.basicConfig(level=logging.INFO, format='%(message)s')

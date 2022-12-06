@@ -47,6 +47,16 @@ class NN:
         A_curr, _ = full_forward_propagation(X, self.params_values, self.nn_architecture)
         return A_curr
     
+    def predict_activations(self, X):
+        A_curr, memory = full_forward_propagation(X, self.params_values, self.nn_architecture)
+        activations = []
+        
+        for i in range(len(self.nn_architecture)):
+            activations.append(compute_activations(memory[f'A{i}'], self.nn_architecture[i]['activation']))
+        activations.append(compute_activations(A_curr, self.nn_architecture[-1]['activation']))
+
+        return A_curr, activations
+        
     def ravel(self):
         '''
         Reduces the network into a 1D vector.
@@ -89,6 +99,21 @@ class NN:
             head = params[begin:begin+n_elems]
             self.params_values["b" + str(layer_idx)] = head
             begin += n_elems
+    
+    def layers(self):
+        rv = []
+
+        # get the input
+        rv.append(self.nn_architecture[0]['input_dim'])
+
+        # get the hidden layers
+        for i in range(1, len(self.nn_architecture)):
+            rv.append(self.nn_architecture[1]['input_dim'])
+
+        # get the output
+        rv.append(self.nn_architecture[-1]['output_dim'])
+
+        return rv
         
     def __str__(self):
         '''
@@ -399,6 +424,17 @@ def train(X, Y, nn_architecture, epochs, learning_rate, verbose=False, callback=
             if(callback is not None):
                 callback(i, params_values)
     return params_values
+
+
+def compute_activations(A, activation):
+    if activation == 'relu':
+        return [0 if e <= 0 else 1 for e in A]
+    elif activation == 'sigmoid':
+        return [0 if e < 0.5 else 1 for e in A]
+    elif activation == 'swish':
+        return [0 if e <= 0 else 1 for e in A]
+    else:
+        raise Exception('Non-supported activation function')
 
 
 def network_size(nn_architecture):

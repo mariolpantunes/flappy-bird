@@ -26,6 +26,7 @@ def load_data(path:str):
 
 async def player_game(model):
     identification = str(uuid.uuid4())[:8]
+    networkLayer = model.layers()
     async with websockets.connect('ws://localhost:8765/player') as websocket:
         await websocket.send(json.dumps({'cmd':'join', 'id':identification}))
         done = False
@@ -42,9 +43,10 @@ async def player_game(model):
                 
                 c =  pipe['py_t'] + pipe['py_b'] / 2
                 X = [player['py'], player['v'], c, pipe['px']]
-                p = model.predict(X)
+                p, activations = model.predict_activations(X)
                 if p[0] >= 0.5:
                     await websocket.send(json.dumps({'cmd':'click'}))
+                await websocket.send(json.dumps({'cmd':'neural_network', 'neural_network':{'networkLayer':networkLayer,'activations':activations}}))
             elif data['evt'] == 'done':
                 return data['highscore']
 

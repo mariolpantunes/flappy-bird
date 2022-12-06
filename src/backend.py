@@ -54,7 +54,6 @@ class Player:
         
         self.v = self.v + self.a * dt
         self.py = self.py + self.v * dt
-        #logger.info(f'({self.py}, {self.v} {self.a})')
 
 
 class Pipe:
@@ -98,6 +97,8 @@ class World:
         self.pipes = []
         self.highscore = 0
         self.generation = 0
+        # OPTIONAL
+        self.neural_network = None
     
     def reset(self):
         self.highscore = 0
@@ -114,6 +115,11 @@ class World:
     def player_click(self, ws):
         if ws in self.players:
             self.players[ws].click = True
+            
+    
+    def player_neural_network(self, neural_network):
+        if len(self.players) == 1:
+            self.neural_network = neural_network
     
     def update(self, dt=1/30):
         dt *= 6.0
@@ -176,11 +182,15 @@ class World:
         players = {}
         for p in self.players.values():
             players[p.uuid] = {'px':p.px,'py':p.py,'v':p.v,'a':p.a}
-        return {'evt':'world_state',
+        rv = {'evt':'world_state',
         'highscore':self.highscore,
         'generation':self.generation,
         'players':players,
         'pipes':[{'px':p.px,'py_t':p.py_top,'py_b':p.py_bottom} for p in self. pipes]}
+        if self.neural_network:
+            rv['neural_network'] = self.neural_network
+        logger.info(rv)
+        return rv
 
 
 class GameServer:
@@ -202,6 +212,9 @@ class GameServer:
                 
                 if data['cmd'] == 'click' and path == '/player':
                     self.world.player_click(websocket)
+                
+                if data['cmd'] == 'neural_network' and path == '/player':
+                    self.world.player_neural_network(data['neural_network'])
 
         except websockets.exceptions.ConnectionClosed as c:
             logger.info('Client disconnected')

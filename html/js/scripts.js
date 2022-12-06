@@ -1,5 +1,5 @@
 const socket = new WebSocket('ws://localhost:8765/viewer');
-const socket_player = new WebSocket('ws://localhost:8765/player');
+//const socket_player = new WebSocket('ws://localhost:8765/player');
 
 const players = [];
 const pipes = [];
@@ -28,11 +28,12 @@ socket.addEventListener('open', (event) => {
 // Listen for messages
 socket.addEventListener('message', (event) => {
     const data = JSON.parse(event.data);
-    //console.log('Message from server ', data);
+    console.log('Message from server ', data);
     if(data.evt == 'world_state') {
         // Update the world state
         world_state_players = data['players'];
         world_state_pipes = data['pipes'];
+        
         // Get the players information
         if(Object.keys(world_state_players).length > 0) {
             players.length = 0;
@@ -41,6 +42,7 @@ socket.addEventListener('message', (event) => {
                 players.push([k, player.px, player.py, player.v]);
             }
         }
+        
         // Get the pipes information
         if(Object.keys(world_state_pipes).length > 0) {
             pipes.length = 0;
@@ -53,6 +55,9 @@ socket.addEventListener('message', (event) => {
         alive = players.length;
         highscore = Math.round(data['highscore']);
         generation = data['generation'];
+        
+        
+        
         // Get the animation position of each bird
         let new_animation_position = {}
         players.forEach(function(p){
@@ -66,21 +71,26 @@ socket.addEventListener('message', (event) => {
                 new_animation_position[key] = previous_i;
             }
         });
-        console.log(new_animation_position);
+        //console.log(new_animation_position);
         animation_position = new_animation_position;
 
         // Draw the scene
         requestAnimationFrame(draw);
+
+        // OPTIONAL -- get the neural network
+        if (data.hasOwnProperty('neural_network')) {
+            console.log('draw nn');
+            draw_network(data['neural_network'].networkLayer, data['neural_network'].activations);
+        }
     }
 });
 
-
+/*
 function onMouseClick() {
     console.log('onMouseClick');
     click = true;
 }
 
-/*
 // Connection opened
 socket_player.addEventListener('open', (event) => {
     socket_player.send(JSON.stringify({'cmd':'join'}));
@@ -148,9 +158,6 @@ function draw() {
         let i = Math.round(animation_position[player[0]])*(bird_img.width/3);
         ctx.drawImage(bird_img, i, 0, bird_img.width/3, bird_img.height, player[1], player[2], bird_img.width/3, bird_img.height);
     });
-    
-    // TODO: fix this
-    //i = (i+(bird_img.width/3))%bird_img.width;
     
     // Draw Infinitely Scrolling Background
     // draw image 1

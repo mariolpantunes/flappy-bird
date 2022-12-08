@@ -280,6 +280,7 @@ class GameServer:
 
 
 async def main(args):
+    random.seed(args.s)
     game = GameServer()
     websocket_server = websockets.serve(game.incomming_handler, 'localhost', args.p)
     game_loop_task = asyncio.create_task(game.mainloop(args))
@@ -292,6 +293,7 @@ if __name__ == '__main__':
     parser.add_argument('-f', type=int, default=30, help='server fps')
     parser.add_argument('-n', type=int, default=1, help='concurrent number of players')
     parser.add_argument('-l', type=int, default=-1, help='limit the highscore')
+    parser.add_argument('-s', type=int, default=42, help='random seed')
     args = parser.parse_args()
 
     asyncio.run(main(args))

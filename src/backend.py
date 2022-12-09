@@ -90,11 +90,12 @@ class Pipe:
 
 
 class World:
-    def __init__(self):
+    def __init__(self, with_pipes=False):
         self.HEIGHT = 400
         self.WIDTH = 580
         self.players = {}
         self.pipes = []
+        self.with_pipes = with_pipes
         self.highscore = 0
         self.generation = 0
         # OPTIONAL
@@ -125,45 +126,47 @@ class World:
         dt *= 6.0
         [p.update(dt) for p in self.players.values()]
         
-        # generate new pipe
-        if len(self.pipes) < 3:
-            if self.pipes:
-                previous_pipe = self.pipes[-1]
-                lower_limit = max(previous_pipe.HEAD,previous_pipe.py_top-(previous_pipe.GAP/2))
-                upper_limit = min(self.HEIGHT-previous_pipe.HEAD-previous_pipe.GAP,
-                previous_pipe.py_top+(previous_pipe.GAP/2))
-                py = random.randint(lower_limit, upper_limit)
-                self.pipes.append(Pipe(previous_pipe.px+290, py))
-            else:
-                self.pipes.append(Pipe(self.WIDTH, 150))
-        
-        # update the pipes position
-        [p.update(dt) for p in self.pipes]
+        if self.with_pipes:
+            # generate new pipe
+            if len(self.pipes) < 3:
+                if self.pipes:
+                    previous_pipe = self.pipes[-1]
+                    lower_limit = max(previous_pipe.HEAD,previous_pipe.py_top-(previous_pipe.GAP/2))
+                    upper_limit = min(self.HEIGHT-previous_pipe.HEAD-previous_pipe.GAP,
+                    previous_pipe.py_top+(previous_pipe.GAP/2))
+                    py = random.randint(lower_limit, upper_limit)
+                    self.pipes.append(Pipe(previous_pipe.px+290, py))
+                else:
+                    self.pipes.append(Pipe(self.WIDTH, 150))
+            
+            # update the pipes position
+            [p.update(dt) for p in self.pipes]
 
-        # check if first pipe can be removed
-        if self.pipes:
-            if self.pipes[0].px+self.pipes[0].WIDTH <=0:
-                self.pipes.pop(0)
+            # check if first pipe can be removed
+            if self.pipes:
+                if self.pipes[0].px+self.pipes[0].WIDTH <=0:
+                    self.pipes.pop(0)
 
     
     def collisions(self):
         keys_to_remove = set()
         
-        # collisions with pipes
-        if self.pipes:
-            # all the players have the same px
-            random_player = list(self.players.values())[0]
-            # select pipe
-            closest_pipe = None
-            closest_distance = self.WIDTH
-            for pipe in self.pipes:
-                if pipe.px+pipe.WIDTH > random_player.px:
-                    # pipe in front
-                    distance = pipe.px-random_player.px
-                    if distance < closest_distance:
-                        closest_pipe = pipe
-                        closest_distance = distance
-            keys_to_remove.update(closest_pipe.collisions(self.players, self.HEIGHT))
+        if self.with_pipes:
+            # collisions with pipes
+            if self.pipes:
+                # all the players have the same px
+                random_player = list(self.players.values())[0]
+                # select pipe
+                closest_pipe = None
+                closest_distance = self.WIDTH
+                for pipe in self.pipes:
+                    if pipe.px+pipe.WIDTH > random_player.px:
+                        # pipe in front
+                        distance = pipe.px-random_player.px
+                        if distance < closest_distance:
+                            closest_pipe = pipe
+                            closest_distance = distance
+                keys_to_remove.update(closest_pipe.collisions(self.players, self.HEIGHT))
 
         # collisions with world
         for k in self.players:
@@ -189,20 +192,17 @@ class World:
         'pipes':[{'px':p.px,'py_t':p.py_top,'py_b':p.py_bottom} for p in self. pipes]}
         if self.neural_network:
             rv['neural_network'] = self.neural_network
-        logger.info(rv)
         return rv
 
 
 class GameServer:
-    def __init__(self):
+    def __init__(self, with_pipes=False):
         self.viewers = set()
-        #self.players = {}
-        self.world = World()
+        self.world = World(with_pipes=with_pipes)
 
     async def incomming_handler(self, websocket, path):
         try:
             async for message in websocket:
-                #logger.info(message)
                 data = json.loads(message)
                 if data['cmd'] == 'join':
                     if path == '/viewer':
@@ -223,8 +223,9 @@ class GameServer:
     
     async def mainloop(self, args):
         while True:
+            logger.info(f'Reset game')
             self.world.reset()
-
+            logger.info(f'Waiting for {args.n} players')
             done = False
             while not done:
                 # check if the have all the players
@@ -232,7 +233,7 @@ class GameServer:
                     done = True
                 else:
                     await asyncio.sleep(1)
-            
+            logger.info(f'Starting the main loop')
             done = False
             while not done:
                 t = time.perf_counter()
@@ -281,7 +282,8 @@ class GameServer:
 
 async def main(args):
     random.seed(args.s)
-    game = GameServer()
+    with_pipes = True if args.pipes is not None else False
+    game = GameServer(with_pipes=with_pipes)
     websocket_server = websockets.serve(game.incomming_handler, 'localhost', args.p)
     game_loop_task = asyncio.create_task(game.mainloop(args))
     await asyncio.gather(websocket_server, game_loop_task)
@@ -294,6 +296,7 @@ if __name__ == '__main__':
     parser.add_argument('-n', type=int, default=1, help='concurrent number of players')
     parser.add_argument('-l', type=int, default=-1, help='limit the highscore')
     parser.add_argument('-s', type=int, default=42, help='random seed')
+    parser.add_argument('--pipes', action='store_true', help='add pipes to the world')
     args = parser.parse_args()
 
     asyncio.run(main(args))

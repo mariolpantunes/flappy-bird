@@ -1,5 +1,4 @@
 const socket = new WebSocket('ws://localhost:8765/viewer');
-//const socket_player = new WebSocket('ws://localhost:8765/player');
 
 const players = [];
 const pipes = [];
@@ -12,24 +11,54 @@ const background_v = 25;
 let bx = 0;
 let scrollSpeed = 5;
 
-//let click = false;
-
 let fps = 0;
 let alive = 0;
 let highscore = 0;
 let generation = 0;
 let lastTime = performance.now();
 
+// Setup the Line chart
+const ctx = document.getElementById('canvas_plot').getContext('2d');
+
+let epochs = [];
+let min_layer = [];
+let mean_layer = [];
+let max_layer = [];
+
+let chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: epochs,
+        datasets: [{label: 'Worst',data: min_layer},{label: 'Average',data: mean_layer},{label: 'Best',data: max_layer}]
+    },
+    options: {
+        responsive: false,
+        maintainAspectRatio: false,
+    }
+  });
+
 // Connection opened
 socket.addEventListener('open', (event) => {
     socket.send(JSON.stringify({'cmd':'join'}));
 });
 
+let epoch = 0;
+
 // Listen for messages
 socket.addEventListener('message', (event) => {
     const data = JSON.parse(event.data);
-    console.log('Message from server ', data);
+    
     if(data.evt == 'world_state') {
+        // assume data regarding training
+        if(epoch % 100==0) {
+            epochs.push(epoch);
+            min_layer.push(1);
+            mean_layer.push(0.5);
+            max_layer.push(0);
+            chart.update();
+        }
+        epoch++;
+        
         // Update the world state
         world_state_players = data['players'];
         world_state_pipes = data['pipes'];
@@ -56,8 +85,6 @@ socket.addEventListener('message', (event) => {
         highscore = Math.round(data['highscore']);
         generation = data['generation'];
         
-        
-        
         // Get the animation position of each bird
         let new_animation_position = {}
         players.forEach(function(p){
@@ -65,13 +92,11 @@ socket.addEventListener('message', (event) => {
             if(p[3]<0) {
                 let previous_i = (animation_position[key] ?? 0) + player_v * (1.0/fps);
                 new_animation_position[key] = Math.round(previous_i) < 3 ? previous_i : 0;
-                //(previous_i + 1) % 3;
             } else {
                 let previous_i = (animation_position[key] ?? 0);
                 new_animation_position[key] = previous_i;
             }
         });
-        //console.log(new_animation_position);
         animation_position = new_animation_position;
 
         // Draw the scene
@@ -79,38 +104,10 @@ socket.addEventListener('message', (event) => {
 
         // OPTIONAL -- get the neural network
         if (data.hasOwnProperty('neural_network')) {
-            console.log('draw nn');
             draw_network(data['neural_network'].networkLayer, data['neural_network'].activations);
         }
     }
 });
-
-/*
-function onMouseClick() {
-    console.log('onMouseClick');
-    click = true;
-}
-
-// Connection opened
-socket_player.addEventListener('open', (event) => {
-    socket_player.send(JSON.stringify({'cmd':'join'}));
-    const canvas = document.getElementById('canvas');
-    canvas.addEventListener('mousedown', onMouseClick);
-});
-
-// Listen for messages
-socket_player.addEventListener('message', (event) => {
-    const data = JSON.parse(event.data);
-    //console.log('Message from server ', data);
-    
-    if(data.evt == 'world_state') {
-        // Update the world state
-        if (click == true) {
-            socket_player.send(JSON.stringify({'cmd':'click'}));
-            click = false;
-        }
-    }
-});*/
 
 const bird_img = new Image();
 const back_img = new Image();

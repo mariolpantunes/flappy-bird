@@ -1,13 +1,19 @@
 #!/usr/bin/env python
 
 
+__author__ = 'Mário Antunes'
+__version__ = '0.1'
+__email__ = 'mariolpantunes@gmail.com'
+__status__ = 'Development'
+
+
 import uuid
 import json
-import pickle
 import asyncio
 import logging
 import argparse
 import websockets
+import numpy as np
 import src.nn as nn
 
 
@@ -20,8 +26,8 @@ wslogger.setLevel(logging.WARN)
 
 def load_data(path:str):
     with open(path, 'rb') as f:
-        data = pickle.load(f)
-        return data['model'], data['parameters']
+        data = json.load(f)
+        return data['model'], np.asarray(data['parameters'])
 
 
 async def player_game(model):

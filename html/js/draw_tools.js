@@ -5,6 +5,8 @@ let arrow = [[2, 0],[-10, -4],[-10, 4]];
 
 function draw_network(networkLayer, activations, bias=false, canvas_id='canvas_network') {
     let canvas = document.getElementById(canvas_id);
+    // check if the canvas for the network exists
+    if(canvas == null) {return;}
     let ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     let width = canvas.width * 0.9;
@@ -52,7 +54,7 @@ function draw_network(networkLayer, activations, bias=false, canvas_id='canvas_n
         neuronLocationPerLayer.push(thisLayerNeuronLocation);
         x += interval;
     }
-    console.log(neuronLocationPerLayer);
+    
     for (let i = 0; i < networkLayer.length - 1; i++) {
         let firstLayer = neuronLocationPerLayer[i];
         let secondLayer = neuronLocationPerLayer[i + 1];
@@ -64,11 +66,11 @@ function draw_network(networkLayer, activations, bias=false, canvas_id='canvas_n
                 let secondY = secondLayer[secondIdx][1];
                 if (bias === true) {
                     if (secondIdx == 0 && (i + 1) != networkLayer.length - 1) {
-                        console.log(secondIdx)
                         continue;
                     }
-                    else
+                    else {
                         drawLineArrow(ctx, firstX + radius, firstY, secondX - radius, secondY);
+                    }
                 }
                 else {
                     drawLineArrow(ctx, firstX + radius, firstY, secondX - radius, secondY);
@@ -107,15 +109,17 @@ function drawFilledPolygon(ctx, shape) {
 
 function translateShape(shape, x, y) {
     let rv = [];
-    for (p in shape)
+    for (p in shape) {
         rv.push([shape[p][0] + x, shape[p][1] + y]);
+    }
     return rv;
 }
 
 function rotateShape(shape, ang) {
     let rv = [];
-    for (p in shape)
+    for (p in shape) {
         rv.push(rotatePoint(ang, shape[p][0], shape[p][1]));
+    }
     return rv;
 }
 

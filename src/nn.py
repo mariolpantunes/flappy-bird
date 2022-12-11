@@ -1,3 +1,16 @@
+# coding: utf-8
+
+'''
+Library that implements a basic multilayer perceptron.
+A multilayer perceptron (MLP) is a fully connected class of feedforward artificial neural network (ANN).
+Was designed for teaching purposes, it can be used for neuroevolution optimization.
+'''
+
+__author__ = 'Mário Antunes'
+__version__ = '0.1'
+__email__ = 'mariolpantunes@gmail.com'
+__status__ = 'Development'
+
 import warnings
 import numpy as np
 
@@ -16,7 +29,7 @@ class NN:
     Ravel reduces the NN to a 1D  vector.
     The update method receives a 1D vector and loads the values into a network.
     '''
-    def __init__(self, nn_architecture, seed=42):
+    def __init__(self, nn_architecture:dict, seed:int=42) -> None:
         '''
         Constructor for a NN object.
 
@@ -28,26 +41,36 @@ class NN:
             ]
         
         Args:
-            nn_architecture: neural network definition
-            seed: seed for the random generator used in the network initialization      
+            nn_architecture (dict): neural network definition
+            seed (int): seed for the random generator used in the network initialization
         '''
         self.nn_architecture = nn_architecture
         self.params_values = init_layers(self.nn_architecture, seed)
 
-    def predict(self, X):
+    def predict(self, X:np.ndarray) -> np.ndarray:
         '''
         Implements the forward propagation algorithm for a Neural Network.
 
         Args:
-            X: 1D vector that is the input of the network
+            X (np.ndarray): 1D vector that is the input of the network
         
         Returns:
-            The output of the network
+            np.ndarray: the output of the network
         '''
         A_curr, _ = full_forward_propagation(X, self.params_values, self.nn_architecture)
         return A_curr
     
-    def predict_activations(self, X):
+    def predict_activations(self, X:np.ndarray)->tuple:
+        '''
+        Implements the forward propagation algorithm for a Neural Network.
+        It also returns a list with the activations of each node (used for visualization purposes).
+
+        Args:
+            X (np.ndarray): 1D vector that is the input of the network
+        
+        Returns:
+            tuple: the output of the network, and the activations of each node
+        '''
         A_curr, memory = full_forward_propagation(X, self.params_values, self.nn_architecture)
         activations = []
         
@@ -57,12 +80,12 @@ class NN:
 
         return A_curr, activations
         
-    def ravel(self):
+    def ravel(self) -> np.ndarray:
         '''
         Reduces the network into a 1D vector.
 
         Returns:
-            A 1D vector that represents the network
+            np.ndarray: a 1D vector that represents the network
         '''
         array = []
         for idx, layer in enumerate(self.nn_architecture):
@@ -76,12 +99,12 @@ class NN:
             array.extend(b_curr.ravel())
         return np.array(array)
 
-    def update(self, params):
+    def update(self, params:np.ndarray) -> None:
         '''
         Loads a 1D vector into a network.
 
         Args:
-            params: 1D vector that contains the weights and bias of the network
+            params (np.ndarray): 1D vector that contains the weights and bias of the network
         '''
         begin = 0
         for idx, layer in enumerate(self.nn_architecture):
@@ -100,7 +123,13 @@ class NN:
             self.params_values["b" + str(layer_idx)] = head
             begin += n_elems
     
-    def layers(self):
+    def layers(self) -> list:
+        '''
+        Returns the number of nodes per layer.
+
+        Returns:
+            list: the number of nodes per layer
+        '''
         rv = []
 
         # get the input
@@ -115,23 +144,26 @@ class NN:
 
         return rv
         
-    def __str__(self):
+    def __str__(self) -> str:
         '''
         Generates a str with the structure of the network.
 
         Returns:
-            A str with the structure of the network
+            str: a str with the structure of the network
         '''
         return str({'ARCHITECTURE':self.nn_architecture,'PARAMETERS':self.params_values})
 
 
-def init_layers(nn_architecture, seed = 42):
+def init_layers(nn_architecture:dict, seed:int = 42) -> dict:
     '''
     Given a network definition it creates and initializes a new network.
 
     Args:
-        nn_architecture: neural network definition
+        nn_architecture (dict): neural network definition
         seed: seed for the random generator used in the network initialization
+    
+    Returns:
+        dict: with the network parameters
     '''
     # random seed initiation
     np.random.seed(seed)

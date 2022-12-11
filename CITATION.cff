@@ -1,0 +1,13 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: flappy-bird
+message: Learn to fly using neural evolution
+type: software
+authors:
+  - given-names: Mário
+    family-names: Antunes
+    email: mario.antunes@av.it.pt
+    affiliation: IT
+    orcid: 'https://orcid.org/0000-0002-6504-9441'

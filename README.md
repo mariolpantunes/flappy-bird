@@ -7,8 +7,20 @@ We will instead on different methods that explore the usage of reinforcement lea
 
 ## Usage
 
+
+
 ## Documentation
 
+This library was documented using the google style docstring, it can be accessed [here](https://mariolpantunes.github.io/flappy-bird/). Run the following commands to produce the documentation for this library.
+
 ```bash
-pdoc --math -d google -o docs . 
+pdoc --math -d google -o docs src 
 ```
+
+## Authors
+
+* **Mário Antunes** - [mariolpantunes](https://github.com/mariolpantunes)
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details

@@ -1,3 +1,45 @@
+// Initial setup
+const bird_img = new Image();
+const back_img = new Image();
+const pipe_t_img = new Image();
+const pipe_b_img = new Image();
+let i = 0;
+
+const epochs = [];
+const min_layer = [];
+const mean_layer = [];
+const max_layer = [];
+
+let line_chart = null;
+
+function init() {
+    bird_img.src = 'data/bird.png';
+    back_img.src = 'data/back.png';
+    pipe_t_img.src = 'data/pipe_top.png';
+    pipe_b_img.src = 'data/pipe_bottom.png';
+
+    // check if the plot canvas exists
+    let canvas_plot = document.getElementById('canvas_plot');
+    if(canvas_plot) {
+        // Setup the Line chart
+        const ctx = canvas_plot.getContext('2d');
+        line_chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: epochs,
+                datasets: [{label: 'Worst',data: min_layer},{label: 'Average',data: mean_layer},{label: 'Best',data: max_layer}]
+            },
+            options: {
+                responsive: false,
+                maintainAspectRatio: false,
+            }
+          });
+    }
+    
+}
+
+init();
+
 const socket = new WebSocket('ws://localhost:8765/viewer');
 
 const players = [];
@@ -17,48 +59,32 @@ let highscore = 0;
 let generation = 0;
 let lastTime = performance.now();
 
-// Setup the Line chart
-const ctx = document.getElementById('canvas_plot').getContext('2d');
-
-let epochs = [];
-let min_layer = [];
-let mean_layer = [];
-let max_layer = [];
-
-let chart = new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: epochs,
-        datasets: [{label: 'Worst',data: min_layer},{label: 'Average',data: mean_layer},{label: 'Best',data: max_layer}]
-    },
-    options: {
-        responsive: false,
-        maintainAspectRatio: false,
-    }
-  });
-
 // Connection opened
 socket.addEventListener('open', (event) => {
     socket.send(JSON.stringify({'cmd':'join'}));
 });
 
-let epoch = 0;
-
 // Listen for messages
 socket.addEventListener('message', (event) => {
     const data = JSON.parse(event.data);
     
-    if(data.evt == 'world_state') {
-        // assume data regarding training
-        if(epoch % 100==0) {
-            epochs.push(epoch);
-            min_layer.push(1);
-            mean_layer.push(0.5);
-            max_layer.push(0);
-            chart.update();
+    if(data.evt == 'reset') {
+        generation = 0;
+        epochs.length = 0;
+        min_layer.length = 0;
+        mean_layer.length = 0;
+        max_layer.length = 0;
+    } else if(data.evt == 'training') {
+        if (line_chart != null) {
+            console.log('plot into line chart...');
+            epochs.push(data.epoch);
+            min_layer.push(data.worst);
+            mean_layer.push(data.mean);
+            max_layer.push(data.best);
+            console.log('epochs: '+epochs)
+            line_chart.update();
         }
-        epoch++;
-        
+    } else if(data.evt == 'world_state') {
         // Update the world state
         world_state_players = data['players'];
         world_state_pipes = data['pipes'];
@@ -103,24 +129,14 @@ socket.addEventListener('message', (event) => {
         requestAnimationFrame(draw);
 
         // OPTIONAL -- get the neural network
-        if (data.hasOwnProperty('neural_network')) {
-            draw_network(data['neural_network'].networkLayer, data['neural_network'].activations);
+        if (data.hasOwnProperty('neural_network') && document.getElementById('canvas_network')) {
+            requestAnimationFrame(function() {
+                draw_network(data['neural_network'].networkLayer, data['neural_network'].activations);
+            });
         }
     }
 });
 
-const bird_img = new Image();
-const back_img = new Image();
-const pipe_t_img = new Image();
-const pipe_b_img = new Image();
-let i = 0;
-
-function init() {
-    bird_img.src = 'data/bird.png';
-    back_img.src = 'data/back.png';
-    pipe_t_img.src = 'data/pipe_top.png';
-    pipe_b_img.src = 'data/pipe_bottom.png';
-}
 
 function draw() {
     const canvas = document.getElementById('canvas');
@@ -172,5 +188,3 @@ function draw() {
     fps = Math.round(1000 / (currentTime - lastTime));
     lastTime = currentTime;
 }
-
-init();

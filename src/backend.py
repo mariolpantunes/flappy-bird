@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 
+
+__author__ = 'Mário Antunes'
+__version__ = '0.1'
+__email__ = 'mariolpantunes@gmail.com'
+__status__ = 'Development'
+
+
 import time
 import math
 import json
@@ -215,11 +222,24 @@ class GameServer:
                 
                 if data['cmd'] == 'neural_network' and path == '/player':
                     self.world.player_neural_network(data['neural_network'])
+                
+                if data['cmd'] == 'training' and path == '/training':
+                    # send the data to the viewers
+                    data['evt'] = 'training'
+                    viewers_to_remove = []
+                    for v in self.viewers:
+                        try:
+                            await v.send(json.dumps(data))
+                        except websockets.exceptions.ConnectionClosed as c:
+                            viewers_to_remove.append(v)
+                    self.viewers.difference_update(viewers_to_remove)
 
         except websockets.exceptions.ConnectionClosed as c:
             logger.info('Client disconnected')
             if websocket in self.viewers:
                 self.viewers.remove(websocket)
+            # TODO: remove players
+            #elif websocket in self.
     
     async def mainloop(self, args):
         while True:

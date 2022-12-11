@@ -5,6 +5,8 @@ That means teaching a neural network to play a simplified version of the well-kn
 Given the nature of the game itself, it is not easy to train a neural network in a conventional way (using a curated dataset, and a guided optimization based on the gradient).
 We will instead on different methods that explore the usage of reinforcement learning and genetic optimization to train consecutive improved versions of our model.
 
+The slide for the project can be found [here](https://docs.google.com/presentation/d/1iRDzoIT7p8NZKDaFp3-U2DBG3oSkbv0H05Sk52Dh8vw/edit?usp=sharing).
+
 ## Arquitecture
 
 The game is manage by a backend process, the web pages only draw the world, show training data and implement the user input.

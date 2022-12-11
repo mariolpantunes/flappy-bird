@@ -77,7 +77,7 @@ async def player_game(model: nn.NN) -> float:
                 c =  pipe['py_t'] + pipe['py_b'] / 2
 
                 X = np.array([player['py'], player['v'], c, pipe['px']])
-                p = perceptron.predict(X)
+                p = model.predict(X)
                 if p[0] >= 0.5:
                     await websocket.send(json.dumps({'cmd':'click'}))
             elif data['evt'] == 'done':
@@ -151,18 +151,18 @@ def main(args: argparse.Namespace) -> None:
     bounds = np.asarray([[-1.0, 1.0]]*nn.network_size(NN_ARCHITECTURE))
     
     # Generate the initial population
-    population = [nn.NN(NN_ARCHITECTURE, seed=args.s).ravel() for i in range(args.p)]
+    population = [nn.NN(NN_ARCHITECTURE, seed=args.s).ravel() for i in range(args.n)]
     
     # Run the optimization algorithm
     if args.a is Optimization.de:
         best, _ = de.differential_evolution(objective, bounds, variant='best/1/bin', callback = callback,
-        population=population, n_iter=args.e, n_jobs=args.p, cached=False, verbose=True, seed=args.s)
+        population=population, n_iter=args.e, n_jobs=args.n, cached=False, verbose=True, seed=args.s)
     elif args.a is Optimization.ga:
         best, _ = ga.genetic_algorithm(objective, bounds, n_iter=args.e, callback = callback,
-        population=population, n_jobs=args.p, cached=False, verbose=True, seed=args.s)
+        population=population, n_jobs=args.n, cached=False, verbose=True, seed=args.s)
     elif args.a is Optimization.pso:
         best, _ = pso.particle_swarm_optimization(objective, bounds, n_iter=args.e, callback = callback,
-        population=population, n_pop=args.p, n_jobs=args.p, cached=False, verbose=True, seed=args.s)
+        population=population, n_jobs=args.n, cached=False, verbose=True, seed=args.s)
 
     # store the best model
     store_data(NN_ARCHITECTURE, best, args.o)

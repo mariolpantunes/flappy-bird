@@ -11,6 +11,8 @@ __version__ = '0.1'
 __email__ = 'mariolpantunes@gmail.com'
 __status__ = 'Development'
 
+
+import typing
 import warnings
 import numpy as np
 
@@ -160,7 +162,7 @@ def init_layers(nn_architecture:dict, seed:int = 42) -> dict:
 
     Args:
         nn_architecture (dict): neural network definition
-        seed: seed for the random generator used in the network initialization
+        seed (int): seed for the random generator used in the network initialization
     
     Returns:
         dict: with the network parameters
@@ -189,103 +191,113 @@ def init_layers(nn_architecture:dict, seed:int = 42) -> dict:
     return params_values
 
 
-def sigmoid(Z):
+def sigmoid(Z:np.ndarray) -> np.ndarray:
     '''
     Computes the sigmoid function for a 1D vector.
+    $$
+        \\sigma(z) = \\frac{1} {1 + e^{-z}}
+    $$
 
     Args:
-        Z: 1D input vector
+        Z (np.ndarray): 1D input vector
     
     Returns:
-        1D vector with the results of the sigmoid operation
+        np.ndarray: 1D vector with the results of the sigmoid operation
     '''
     return 1/(1+np.exp(-Z))
 
 
-def sigmoid_backward(dA, Z):
+def sigmoid_backward(dA:np.ndarray, Z:np.ndarray) -> np.ndarray:
     '''
     Computes the backpropagation step for the sigmoid function.
 
     Args:
-        dA: derivative of the previous layer
-        Z: 1D input vector
+        dA (np.ndarray): derivative of the previous layer
+        Z (np.ndarray): 1D input vector
     
     Returns:
-        1D vector with the results of the backpropagation step
+        np.ndarray: 1D vector with the results of the backpropagation step
     '''
     sig = sigmoid(Z)
     return dA * sig * (1 - sig)
 
 
-def relu(Z):
+def relu(Z:np.ndarray) -> np.ndarray:
     '''
     Computes the relu function for a 1D vector.
+    $$
+        Relu(z) = max(0, z)
+    $$
 
     Args:
-        Z: 1D input vector
+        Z (np.ndarray): 1D input vector
     
     Returns:
-        1D vector with the results of the relu operation
+        np.ndarray: 1D vector with the results of the relu operation
     '''
     return np.maximum(0,Z)
 
 
-def relu_backward(dA, Z):
+def relu_backward(dA:np.ndarray, Z:np.ndarray) -> np.ndarray:
     '''
     Computes the backpropagation step for the relu function.
 
     Args:
-        dA: derivative of the previous layer
-        Z: 1D input vector
+        dA (np.ndarray): derivative of the previous layer
+        Z (np.ndarray): 1D input vector
     
     Returns:
-        1D vector with the results of the backpropagation step
+        np.ndarray: 1D vector with the results of the backpropagation step
     '''
     dZ = np.array(dA, copy = True)
     dZ[Z <= 0] = 0
     return dZ
 
 
-def swish(Z):
+def swish(Z:np.ndarray) -> np.ndarray:
     '''
     Computes the swish function for a 1D vector.
 
     Args:
-        Z: 1D input vector
+        Z (np.ndarray): 1D input vector
     
     Returns:
-        1D vector with the results of the swish operation
+        np.ndarray: 1D vector with the results of the swish operation
     '''
     return Z*sigmoid(Z)
 
 
-def swish_backward(dA, Z):
+def swish_backward(dA:np.ndarray, Z:np.ndarray) -> np.ndarray:
     '''
     Computes the backpropagation step for the swish function.
 
     Args:
-        dA: derivative of the previous layer
-        Z: 1D input vector
+        dA (np.ndarray): derivative of the previous layer
+        Z (np.ndarray): 1D input vector
     
     Returns:
-        1D vector with the results of the backpropagation step
+        np.ndarray: 1D vector with the results of the backpropagation step
     '''
     sig = sigmoid(Z)
     return dA * (sig * (1+Z*(1-sig)))
 
 
-def single_layer_forward_propagation(A_prev, W_curr, b_curr, activation='relu'):
+def single_layer_forward_propagation(A_prev:np.ndarray, W_curr:np.ndarray,
+b_curr:np.ndarray, activation:str='relu') -> np.ndarray:
     '''
     Computes a single step of the forward propagation algorithm.
 
     Args:
-        A_prev:
-        W_curr:
-        b_curr:
-        activation:
+        A_prev (np.ndarray): Result from the previous layer 
+        W_curr (np.ndarray): The weights 
+        b_curr (np.ndarray): The bias
+        activation (str): the activation function
 
     Returns:
-        
+        np.ndarray: the forward pass vector
+    
+    Raises:
+        Exception: on non-supported activation function
     '''
     # calculation of the input value for the activation function
     Z_curr = np.dot(W_curr, A_prev) 
@@ -305,7 +317,21 @@ def single_layer_forward_propagation(A_prev, W_curr, b_curr, activation='relu'):
     return activation_func(Z_curr), Z_curr
 
 
-def full_forward_propagation(X, params_values, nn_architecture):
+def full_forward_propagation(X:np.ndarray, params_values:dict, nn_architecture:dict) -> tuple:
+    '''
+    Computes a single step of the forward propagation algorithm.
+
+    Args:
+        X (np.ndarray): 1D vector that is the input of the network
+        params_values (dict): the network parameters (weights and bias)
+        nn_architecture (dict): neural network definition
+       
+    Returns:
+        tuples: network output and the memory dict(for debug)
+    
+    Raises:
+        Exception: on non-supported activation function
+    '''
     # creating a temporary memory to store the information needed for a backward step
     memory = {}
     # X vector is the activation for layer 0 
@@ -336,7 +362,22 @@ def full_forward_propagation(X, params_values, nn_architecture):
     return A_curr, memory
 
 
-def get_cost_value(Y_hat, Y):
+def get_cost_value(Y_hat:np.ndarray, Y:np.ndarray) -> np.ndarray:
+    '''
+    Binary crossentropy cost function
+    
+    $$
+        J(W,b) = \\frac{1}{m} \\sum{m}{i=1} L(\\hat{y}^{(i)}, y^{(i)});
+        L(\\hat{y},y) = -{(y\\log(\\hat{y}) + (1 - y)\\log(1 - \\hat{y}))}
+    $$
+
+    Args:
+        Y_hat (np.ndarray): the predicted values
+        Y (np.ndarray): the expected values (outcome)
+
+    Returns:
+        np.ndarray: binary crossentropy cost
+    '''
     # number of examples
     m = Y_hat.shape[1]
     # calculation of the cost according to the formula
@@ -344,20 +385,51 @@ def get_cost_value(Y_hat, Y):
     return np.squeeze(cost)
 
 
-# an auxiliary function that converts probability into class
-def convert_prob_into_class(probs):
+def convert_prob_into_class(probs:np.ndarray) -> np.ndarray:
+    '''
+    An auxiliary function that converts probability into class
+
+    Args:
+        probs (np.ndarray): the binary class probabilities
+
+    Returns:
+        np.ndarray: binary classes
+    '''
     probs_ = np.copy(probs)
     probs_[probs_ > 0.5] = 1
     probs_[probs_ <= 0.5] = 0
     return probs_
 
 
-def get_accuracy_value(Y_hat, Y):
+def get_accuracy_value(Y_hat:np.ndarray, Y:np.ndarray) -> float:
+    '''
+    Computes the accuracy value
+
+    Args:
+        Y_hat (np.ndarray): the predicted values
+        Y (np.ndarray): the expected values (outcome)
+
+    Returns:
+        float: accuracy
+    '''
     Y_hat_ = convert_prob_into_class(Y_hat)
     return (Y_hat_ == Y).all(axis=0).mean()
 
 
-def update(params_values, grads_values, nn_architecture, learning_rate):
+def update(params_values:dict, grads_values:dict, nn_architecture:dict, learning_rate:float) -> dict:
+    '''
+    The goal of this method is to update network parameters using gradient optimisation.
+
+    Args:
+        params_values (dict): the network parameters (weights and bias)
+        grad_values (dict): stores cost function derivatives calculated with respect to these parameters
+        nn_architecture (dict): neural network definition
+        learning_rate (float): the learning rate for the gradient descent optimization method
+    
+    Returns:
+        dict: the network parameters
+
+    '''
     # iteration over network layers
     for layer_idx, layer in enumerate(nn_architecture, 1):
         params_values["W" + str(layer_idx)] -= learning_rate * grads_values["dW" + str(layer_idx)]        
@@ -365,7 +437,24 @@ def update(params_values, grads_values, nn_architecture, learning_rate):
     return params_values
 
 
-def single_layer_backward_propagation(dA_curr, W_curr, b_curr, Z_curr, A_prev, activation="relu"):
+def single_layer_backward_propagation(dA_curr:np.ndarray, W_curr:np.ndarray, 
+b_curr:np.ndarray, Z_curr:np.ndarray, A_prev:np.ndarray, activation:str='relu') -> tuple:
+    '''
+    The essence of this algorithm is the recursive use of a chain rule known 
+    from differential calculus — calculate a derivative of functions created 
+    by assembling other functions, whose derivatives we already know.
+
+    Args:
+        dA_curr (np.ndarray): the derivative of the current activation
+        W_curr (np.ndarray): The weights 
+        b_curr (np.ndarray): The bias
+        Z_curr (np.ndarray): the previous values
+        A_prev (np.ndarray): the previous activation values 
+        activation (str): the activation function (default relu)
+    
+    Returns:
+        tuple: the derivate for the next layer, and the derivatives of the weights and bias
+    '''
     # number of examples
     m = A_prev.shape[1]
     
@@ -392,7 +481,27 @@ def single_layer_backward_propagation(dA_curr, W_curr, b_curr, Z_curr, A_prev, a
     return dA_prev, dW_curr, db_curr
 
 
-def full_backward_propagation(Y_hat, Y, memory, params_values, nn_architecture):
+def full_backward_propagation(Y_hat:np.ndarray, Y:np.ndarray, 
+memory:dict, params_values:dict, nn_architecture:dict) -> dict:
+    '''
+    Backward propagation algorithm (for binary classification)
+
+    We start by calculating a derivative of the cost function with 
+    respect to the prediction vector — result of forward propagation. 
+    Then iterate through the layers of the network starting from the 
+    end and calculate the derivatives with respect to all parameters.
+    Ultimately, function returns a python dictionary containing the gradient we are looking for.
+
+    Args:
+        Y_hat (np.ndarray): the predicted values
+        Y (np.ndarray): the expected values (outcome)
+        memory (dict): intermediate values (debug)
+        params_values (dict): the network parameters (weights and bias)
+        nn_architecture (dict): neural network definition
+
+    Returns:
+        dict: stores cost function derivatives calculated with respect to these parameters
+    '''
     grads_values = {}
     
     # number of examples
@@ -401,7 +510,8 @@ def full_backward_propagation(Y_hat, Y, memory, params_values, nn_architecture):
     Y = Y.reshape(Y_hat.shape)
     
     # initiation of gradient descent algorithm
-    dA_prev = - (np.divide(Y, Y_hat) - np.divide(1 - Y, 1 - Y_hat));
+    # TODO: for binary classification
+    dA_prev = - (np.divide(Y, Y_hat) - np.divide(1 - Y, 1 - Y_hat))
     
     for layer_idx_prev, layer in reversed(list(enumerate(nn_architecture))):
         # we number network layers from 1
@@ -426,7 +536,26 @@ def full_backward_propagation(Y_hat, Y, memory, params_values, nn_architecture):
     return grads_values
 
 
-def train(X, Y, nn_architecture, epochs, learning_rate, verbose=False, callback=None):
+def train(X:np.ndarray, Y:np.ndarray, nn_architecture:dict, 
+epochs:int=100, learning_rate:float=0.01, 
+verbose:bool=False, callback:typing.Callable=None) -> dict:
+    '''
+    The function returns optimized weights obtained as a 
+    result of the training and the history of the metrics 
+    change during the training.
+
+    Args:
+        X (np.ndarray): 1D vector that is the input of the network
+        Y (np.ndarray): the expected values (outcome)
+        nn_architecture (dict): neural network definition
+        epochs (int): the number of backwards propagation loops (default 100)
+        learning_rate (float): the learning rate for the gradient descent optimization method (default 0.01)
+        verbose (bool): control the output of debug information (default False)
+        callback (typing.Callable): callback function that is called at each epoch (deafult None)
+    
+    Returns
+        dict: the network parameters
+    '''
     # initiation of neural net parameters
     params_values = init_layers(nn_architecture, 2)
     # initiation of lists storing the history 
@@ -458,7 +587,17 @@ def train(X, Y, nn_architecture, epochs, learning_rate, verbose=False, callback=
     return params_values
 
 
-def compute_activations(A, activation):
+def compute_activations(A:np.ndarray, activation:str) -> list:
+    '''
+    Check if the layer nodes are active or not (activation functions is high or low)
+
+    Args:
+        A (np.ndarray): the output of a layer
+        activation (str): the activation function
+    
+    Returns:
+        list: with 1 (high) for activa and 0 for inactive (low)
+    '''
     if activation == 'relu':
         return [0 if e <= 0 else 1 for e in A]
     elif activation == 'sigmoid':
@@ -469,7 +608,16 @@ def compute_activations(A, activation):
         raise Exception('Non-supported activation function')
 
 
-def network_size(nn_architecture):
+def network_size(nn_architecture:dict) -> int:
+    '''
+    Given a network topology it computnes the number of weigths and bias.
+
+    Args:
+        nn_architecture (dict): neural network definition
+    
+    Returns
+        int: the number of weigths and bias 
+    '''
     size = 0
     # iteration over network layers
     for layer in nn_architecture:

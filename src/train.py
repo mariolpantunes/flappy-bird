@@ -169,7 +169,7 @@ def main(args: argparse.Namespace) -> None:
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Train agents')
+    parser = argparse.ArgumentParser(description='Train the agents', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-u', type=str, help='server url', default='ws://localhost:8765')
     parser.add_argument('-s', type=int, help='Random generator seed', default=42)
     parser.add_argument('-e', type=int, help='optimization epochs', default=30)

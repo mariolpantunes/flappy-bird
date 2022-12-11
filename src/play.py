@@ -91,12 +91,12 @@ def main(args: argparse.Namespace) -> None:
     model = nn.NN(model_description)
     model.update(parameters)
 
-    highscore = asyncio.run(player_game(args.p, model))
+    highscore = asyncio.run(player_game(args.u, model))
     logger.info(f'Highscore: {highscore}')
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Train agents')
+    parser = argparse.ArgumentParser(description='Play the game', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-u', type=str, help='server url', default='ws://localhost:8765')
     parser.add_argument('-l', type=str, help='load a player neural network', required=True)
     args = parser.parse_args()

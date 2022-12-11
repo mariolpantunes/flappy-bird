@@ -458,7 +458,7 @@ async def main(args: argparse.Namespace) -> None:
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Backend server')
+    parser = argparse.ArgumentParser(description='Backend server', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-p', type=int, default=8765, help='server port')
     parser.add_argument('-s', type=int, default=42, help='random seed')
     parser.add_argument('-f', type=int, default=30, help='server fps')

@@ -48,9 +48,19 @@ NN_ARCHITECTURE = [
 ]
 
 
-async def player_game(perceptron):
+async def player_game(model: nn.NN) -> float:
+    '''
+    Player main loop.
+
+    Args:
+        model (nn.NN): the model used for playing
+    
+    Returns:
+        float: the highscore achieved
+    '''
     identification = str(uuid.uuid4())[:8]
-    async with websockets.connect('ws://localhost:8765/player') as websocket:
+    #async with websockets.connect('ws://localhost:8765/player') as websocket:
+    async with websockets.connect(f'{CONSOLE_ARGUMENTS.u}/player') as websocket:
         await websocket.send(json.dumps({'cmd':'join', 'id':identification}))
         done = False
         while not done:
@@ -74,32 +84,69 @@ async def player_game(perceptron):
                 return data['highscore']
 
 
-def objective(p):
+def objective(p: np.ndarray) -> float:
+    '''
+    Objective function used to evaluate the candidate solution.
+
+    Args:
+        p (np.ndarray): the parameters of the candidate solution
+    
+    Returns:
+        float: the cost value
+    '''
     model = nn.NN(NN_ARCHITECTURE)
     model.update(p)
     highscore = asyncio.run(player_game(model))
     return -highscore
 
 
-async def share_training_data(epoch, obj):
+async def share_training_data(epoch:int, obj:list) -> None:
+    '''
+    Async method that sends the training data to the viewer. 
+
+    Args:
+        epoch (int): the current epoch
+        obj (list): list with the current objective values
+    '''
     # compute the worst, best and average fitness
     worst = max(obj)
     best = min(obj)
     mean = statistics.mean(obj)
-    async with websockets.connect('ws://localhost:8765/training') as websocket:
+    async with websockets.connect(f'{CONSOLE_ARGUMENTS.u}/training') as websocket:
         await websocket.send(json.dumps({'cmd':'training', 'epoch':epoch, 'worst':worst,'best':best, 'mean':mean}))
 
 
-def callback(epoch, obj):
+def callback(epoch:int, obj:list) -> None:
+    '''
+    Callback used to share the training data to the viewer.
+
+    Args:
+        epoch (int): the current epoch
+        obj (list): list with the current objective values
+    '''
     asyncio.run(share_training_data(epoch, obj))
 
 
-def store_data(model, parameters, path:str):
+def store_data(model:dict, parameters:np.ndarray, path:str) -> None:
+    '''
+    Store the model into a json file.
+
+    Args:
+        model (dict): the model definition
+        parameters (np.ndarray): the model parameters
+        path (str): the location of the file
+    '''
     with open(path, 'w') as f:
         json.dump({'model':model, 'parameters':parameters.tolist()}, f)
 
 
-def main(args):
+def main(args: argparse.Namespace) -> None:
+    '''
+    Main method.
+
+    Args:
+        args (argparse.Namespace): the program arguments
+    '''
     # Define the bounds for the optimization
     bounds = np.asarray([[-1.0, 1.0]]*nn.network_size(NN_ARCHITECTURE))
     
@@ -109,12 +156,12 @@ def main(args):
     # Run the optimization algorithm
     if args.a is Optimization.de:
         best, _ = de.differential_evolution(objective, bounds, variant='best/1/bin', callback = callback,
-        population=population, n_iter=args.l, n_jobs=args.p, cached=False, verbose=True, seed=args.s)
+        population=population, n_iter=args.e, n_jobs=args.p, cached=False, verbose=True, seed=args.s)
     elif args.a is Optimization.ga:
-        best, _ = ga.genetic_algorithm(objective, bounds, n_iter=args.l, callback = callback,
+        best, _ = ga.genetic_algorithm(objective, bounds, n_iter=args.e, callback = callback,
         population=population, n_jobs=args.p, cached=False, verbose=True, seed=args.s)
     elif args.a is Optimization.pso:
-        best, _ = pso.particle_swarm_optimization(objective, bounds, n_iter=args.l, callback = callback,
+        best, _ = pso.particle_swarm_optimization(objective, bounds, n_iter=args.e, callback = callback,
         population=population, n_pop=args.p, n_jobs=args.p, cached=False, verbose=True, seed=args.s)
 
     # store the best model
@@ -123,11 +170,14 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train agents')
-    parser.add_argument('-l', type=int, help='number of loops (iterations)', default=30)
-    parser.add_argument('-p', type=int, help='population size', default=10)
-    parser.add_argument('-a', type=Optimization, help='Optimization algorithm', choices=list(Optimization), default='de')
+    parser.add_argument('-u', type=str, help='server url', default='ws://localhost:8765')
     parser.add_argument('-s', type=int, help='Random generator seed', default=42)
+    parser.add_argument('-e', type=int, help='optimization epochs', default=30)
+    parser.add_argument('-n', type=int, help='population size', default=10)
+    parser.add_argument('-a', type=Optimization, help='Optimization algorithm', choices=list(Optimization), default='de')
     parser.add_argument('-o', type=str, help='store the best model', default='out/model.json')
     args = parser.parse_args()
+    # Global variable for the arguments (required due to the callback function)
+    CONSOLE_ARGUMENTS = args
 
     main(args)

@@ -28,18 +28,43 @@ wslogger.setLevel(logging.WARN)
 
 @dataclasses.dataclass
 class Rect:
+    '''
+    Data class used to hold the rectangle data.
+    Used in the collision algorithm.
+    '''
     x: int = 0
     y: int = 0
     w: int = 0
     h: int = 0
 
 
-def rect_rect_collision(r1, r2):
+def rect_rect_collision(r1:Rect, r2:Rect) -> bool:
+    '''
+    Computes the collision of two rectangular shapes.
+    
+    Args:
+        r1 (Rect): the first rectangle
+        r2 (Rect): the second rectangle
+
+    Returns:
+        bool: true in case of collision, false otherwise
+    '''
     return r1.x < r2.x + r2.w and r1.x + r1.w > r2.x and r1.y < r2.y + r2.h and r1.h + r1.y > r2.y
 
 
 class Player:
-    def __init__(self, uuid, px=200, py=140):
+    '''
+    Class that represents a player in the game (a flappy bird).
+    '''
+    def __init__(self, uuid:str, px:int=200, py:int=140) -> None:
+        '''
+        Constructor for a Player object.
+
+        Args:
+            uuid (str): unique identifier
+            px (int): initial position x (default 200)
+            py (int): initial position y (default 140)
+        '''
         self.HEIGHT = 42
         self.WIDTH = 60
         self.px = px
@@ -51,7 +76,13 @@ class Player:
         self.done = False
         self.uuid = uuid
     
-    def update(self, dt):
+    def update(self, dt:float=1/30) -> None:
+        '''
+        Updates the player position.
+
+        Args:
+            dt (float): the duration of each frame (default 1/30)
+        '''
         if self.click:
             self.click = False
             self.v = -25
@@ -64,7 +95,17 @@ class Player:
 
 
 class Pipe:
-    def __init__(self, px, py):
+    '''
+    Class that represents a pipe in the game.
+    '''
+    def __init__(self, px:int, py:int) -> None:
+        '''
+        Constructor for a Pipe object.
+
+        Args:
+            px (int): initial position x
+            py (int): initial position y
+        '''
         self.HEIGHT = 355 
         self.WIDTH = 60
         self.GAP = 100
@@ -74,10 +115,26 @@ class Pipe:
         self.py_bottom = py+self.GAP
         self.v = -10
     
-    def update(self, dt):
+    def update(self, dt:float=1/30) -> None:
+        '''
+        Updates the pipe position.
+        
+        Args:
+            dt (float): the duration of each frame (default 1/30)
+        '''
         self.px = self.px + self.v * dt
     
-    def collisions(self, players, world_height):
+    def collisions(self, players:list, world_height:int) -> list:
+        '''
+        Check if any player collided with the pipe.
+
+        Args:
+            players (list): list of active players
+            world_height (int): the world height
+        
+        Returns:
+            list: players that collided with the pipe
+        '''
         keys_to_remove = []
         
         rect_top = Rect(self.px, 0, self.WIDTH, self.py_top)
@@ -97,7 +154,16 @@ class Pipe:
 
 
 class World:
-    def __init__(self, with_pipes=False):
+    '''
+    Class that contains all the elements in the world (birds and pipes).
+    '''
+    def __init__(self, with_pipes:bool=False) -> None:
+        '''
+        Constructor for a World object.
+
+        Args:
+            with_pipes (bool): with or without pipes
+        '''
         self.HEIGHT = 400
         self.WIDTH = 580
         self.players = {}
@@ -108,28 +174,62 @@ class World:
         # OPTIONAL
         self.neural_network = None
     
-    def reset(self):
+    def reset(self) -> None:
+        '''
+        Reset the world state.
+        '''
         self.highscore = 0
         self.generation += 1
         self.pipes.clear()
 
-    def add_player(self, ws, uuid):
+    def add_player(self, ws, uuid:str) -> None:
+        '''
+        Adds a new player to the world.
+
+        Args:
+            ws: websocket that identifies the players
+            uuid (str): player unique identification
+        '''
         if ws not in self.players:
             self.players[ws] = Player(uuid)
     
-    def number_players(self):
+    def number_players(self) -> int:
+        '''
+        Returns the current number of active players.
+
+        Returns:
+            int: number of active players
+        '''
         return len(self.players)
     
-    def player_click(self, ws):
+    def player_click(self, ws) -> None:
+        '''
+        Flag the player input (click).
+
+        Args:
+            ws: websocket that identifies the players
+        '''
         if ws in self.players:
             self.players[ws].click = True
             
     
-    def player_neural_network(self, neural_network):
+    def player_neural_network(self, neural_network:dict) -> None:
+        '''
+        Neural network definition and activation to be displayed on the viewer.
+
+        Args:
+            neural_network (dict): neural network definition and activation data
+        '''
         if len(self.players) == 1:
             self.neural_network = neural_network
     
-    def update(self, dt=1/30):
+    def update(self, dt:float=1/30) -> None:
+        '''
+        Updates the position of the pipes and the players.
+
+        Args:
+            dt (float): the duration of each frame (default 1/30)
+        '''
         dt *= 6.0
         [p.update(dt) for p in self.players.values()]
         
@@ -155,7 +255,13 @@ class World:
                     self.pipes.pop(0)
 
     
-    def collisions(self):
+    def collisions(self) -> list:
+        '''
+        Check if the players have colidded with the pipes or the world
+
+        Returns:
+            list: player to be removed
+        '''
         keys_to_remove = set()
         
         if self.with_pipes:
@@ -185,10 +291,22 @@ class World:
         
         return keys_to_remove
 
-    def update_highscore(self, dt=1/30):
+    def update_highscore(self, dt:float=1/30) -> None:
+        '''
+        Update the highscore
+
+        Args:
+            dt (float): the duration of each frame (default 1/30)
+        '''
         self.highscore += dt
     
-    def dump(self):
+    def dump(self) -> dict:
+        '''
+        Dumps the world content into a dictionary.
+
+        Returns:
+            dict: world content 
+        '''
         players = {}
         for p in self.players.values():
             players[p.uuid] = {'px':p.px,'py':p.py,'v':p.v,'a':p.a}
@@ -203,11 +321,27 @@ class World:
 
 
 class GameServer:
+    '''
+    Class that manages the game and the incoming messages.
+    '''
     def __init__(self, with_pipes=False):
+        '''
+        Constructor for a GameServer object.
+
+        Args:
+            with_pipes (bool): with or without pipes
+        '''
         self.viewers = set()
         self.world = World(with_pipes=with_pipes)
 
-    async def incomming_handler(self, websocket, path):
+    async def incomming_handler(self, websocket, path:str) -> None:
+        '''
+        Manages the incomming messages.
+
+        Args:
+            websocket: websocket
+            path (str): path used by the client
+        '''
         try:
             async for message in websocket:
                 data = json.loads(message)
@@ -241,7 +375,13 @@ class GameServer:
             # TODO: remove players
             #elif websocket in self.
     
-    async def mainloop(self, args):
+    async def mainloop(self, args: argparse.Namespace) -> None:
+        '''
+        Defines the main loop of the game.
+
+        Args:
+            args (argparse.Namespace): the arguments to configure the game loop
+        '''
         while True:
             logger.info(f'Reset game')
             self.world.reset()
@@ -300,7 +440,15 @@ class GameServer:
                 await asyncio.sleep(delay)
 
 
-async def main(args):
+async def main(args: argparse.Namespace) -> None:
+    '''
+    Main (async) method.
+
+    Setups the game loop and the websocketserver.
+
+    Args:
+        args (argparse.Namespace): the program arguments
+    '''
     random.seed(args.s)
     with_pipes = True if args.pipes is not None else False
     game = GameServer(with_pipes=with_pipes)
@@ -312,10 +460,10 @@ async def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Backend server')
     parser.add_argument('-p', type=int, default=8765, help='server port')
+    parser.add_argument('-s', type=int, default=42, help='random seed')
     parser.add_argument('-f', type=int, default=30, help='server fps')
     parser.add_argument('-n', type=int, default=1, help='concurrent number of players')
     parser.add_argument('-l', type=int, default=-1, help='limit the highscore')
-    parser.add_argument('-s', type=int, default=42, help='random seed')
     parser.add_argument('--pipes', action='store_true', help='add pipes to the world')
     args = parser.parse_args()
 

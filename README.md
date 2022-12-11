@@ -23,7 +23,7 @@ The training should look something like this:
 
 And the fully trained agent should look like this:
 
-![training](html/data/playing.mp4)
+![playing](html/data/playing.mp4)
 
 ## Usage
 

@@ -21,11 +21,11 @@ The arquitecture can be found on the following image:
 
 The training should look something like this:
 
-![training](html/data/training.webm.mov)
+![training](html/data/training.gif)
 
 And the fully trained agent should look like this:
 
-![playing](html/data/playing.webm.mov)
+![playing](html/data/playing.gif)
 
 ## Usage
 

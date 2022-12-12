@@ -450,8 +450,7 @@ async def main(args: argparse.Namespace) -> None:
         args (argparse.Namespace): the program arguments
     '''
     random.seed(args.s)
-    with_pipes = True if args.pipes is not None else False
-    game = GameServer(with_pipes=with_pipes)
+    game = GameServer(with_pipes=args.pipes)
     websocket_server = websockets.serve(game.incomming_handler, 'localhost', args.p)
     game_loop_task = asyncio.create_task(game.mainloop(args))
     await asyncio.gather(websocket_server, game_loop_task)

@@ -43,7 +43,6 @@ class Optimization(enum.Enum):
 
 
 NN_ARCHITECTURE = [
-    {'input_dim': 4, 'output_dim': 4, 'activation': 'relu'},
     {'input_dim': 4, 'output_dim': 1, 'activation': 'sigmoid'}
 ]
 
@@ -78,7 +77,7 @@ async def player_game(model: nn.NN) -> float:
 
                 X = np.array([player['py'], player['v'], c, pipe['px']])
                 p = model.predict(X)
-                if p[0] >= 0.5:
+                if p[0] > 0:
                     await websocket.send(json.dumps({'cmd':'click'}))
             elif data['evt'] == 'done':
                 return data['highscore']
@@ -155,7 +154,7 @@ def main(args: argparse.Namespace) -> None:
     
     # Run the optimization algorithm
     if args.a is Optimization.de:
-        best, _ = de.differential_evolution(objective, bounds, variant='best/1/bin', callback = callback,
+        best, _ = de.differential_evolution(objective, bounds, variant='best/3/exp', callback = callback,
         population=population, n_iter=args.e, n_jobs=args.n, cached=False, verbose=True, seed=args.s)
     elif args.a is Optimization.ga:
         best, _ = ga.genetic_algorithm(objective, bounds, n_iter=args.e, callback = callback,

@@ -8,6 +8,7 @@ __status__ = 'Development'
 
 
 import enum
+import math
 import uuid
 import json
 import asyncio
@@ -58,6 +59,10 @@ async def player_game(model: nn.NN) -> float:
         float: the highscore achieved
     '''
     identification = str(uuid.uuid4())[:8]
+    
+    player_x, player_y = 0,0
+    pipe_x, pipe_y_t, pipe_y_b = 0,0,0
+
     #async with websockets.connect('ws://localhost:8765/player') as websocket:
     async with websockets.connect(f'{CONSOLE_ARGUMENTS.u}/player') as websocket:
         await websocket.send(json.dumps({'cmd':'join', 'id':identification}))
@@ -72,15 +77,24 @@ async def player_game(model: nn.NN) -> float:
                     if pipe['px']+60 > player['px']:
                         closest_pipe = pipe
                         break
+
+                # Store data
+                player_x = player['px']
+                player_y = player['py']
+                pipe_x = pipe['px']
+                pipe_y_t = pipe['py_t']
+                pipe_y_b = pipe['py_b']
                 
                 c =  pipe['py_t'] + pipe['py_b'] / 2
-
                 X = np.array([player['py'], player['v'], c, pipe['px']])
                 p = model.predict(X)
-                if p[0] > 0:
+                if p[0] > 0.5:
                     await websocket.send(json.dumps({'cmd':'click'}))
             elif data['evt'] == 'done':
-                return data['highscore']
+                d1 = math.sqrt((player_x-pipe_x)**2 + (player_y-pipe_y_b)**2)
+                d2 = math.sqrt((player_x-pipe_x)**2 + (player_y-pipe_y_t)**2)
+                alpha = 0.1 
+                return data['highscore']-alpha*(d1+d2)
 
 
 def objective(p: np.ndarray) -> float:
@@ -147,11 +161,11 @@ def main(args: argparse.Namespace) -> None:
         args (argparse.Namespace): the program arguments
     '''
     # Define the bounds for the optimization
-    bounds = np.asarray([[-1.0, 1.0]]*nn.network_size(NN_ARCHITECTURE))
+    bounds = np.asarray([[-10.0, 10.0]]*nn.network_size(NN_ARCHITECTURE))
     
     # Generate the initial population
     population = [nn.NN(NN_ARCHITECTURE, seed=args.s).ravel() for i in range(args.n)]
-    
+
     # Run the optimization algorithm
     if args.a is Optimization.de:
         best, _ = de.differential_evolution(objective, bounds, variant='best/3/exp', callback = callback,

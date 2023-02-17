@@ -387,8 +387,12 @@ class GameServer:
             self.world.reset()
             logger.info(f'Waiting for {args.n} players')
             done = False
+            previous = -1
             while not done:
                 # check if the have all the players
+                if self.world.number_players() != previous:
+                    print(f'Players {self.world.number_players()}')
+                    previous = self.world.number_players()
                 if self.world.number_players() >= args.n:
                     done = True
                 else:

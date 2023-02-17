@@ -21,6 +21,7 @@ import src.nn as nn
 import optimization.de as de
 import optimization.ga as ga
 import optimization.pso as pso
+import optimization.init as init
 
 
 logging.basicConfig(level=logging.INFO, format='%(message)s')
@@ -44,7 +45,8 @@ class Optimization(enum.Enum):
 
 
 NN_ARCHITECTURE = [
-    {'input_dim': 4, 'output_dim': 1, 'activation': 'sigmoid'}
+    {'input_dim': 4, 'output_dim': 2, 'activation': 'relu'},
+    {'input_dim': 2, 'output_dim': 1, 'activation': 'sigmoid'}
 ]
 
 
@@ -161,10 +163,13 @@ def main(args: argparse.Namespace) -> None:
         args (argparse.Namespace): the program arguments
     '''
     # Define the bounds for the optimization
-    bounds = np.asarray([[-10.0, 10.0]]*nn.network_size(NN_ARCHITECTURE))
+    bounds = np.asarray([[-1.0, 1.0]]*nn.network_size(NN_ARCHITECTURE))
     
     # Generate the initial population
     population = [nn.NN(NN_ARCHITECTURE, seed=args.s).ravel() for i in range(args.n)]
+
+    # Apply Opposition Learning to the inital population
+    population = init.opposition_based(objective, bounds, population=population, n_jobs=args.n)
 
     # Run the optimization algorithm
     if args.a is Optimization.de:

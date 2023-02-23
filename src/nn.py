@@ -12,6 +12,7 @@ __email__ = 'mariolpantunes@gmail.com'
 __status__ = 'Development'
 
 
+import math
 import typing
 import warnings
 import numpy as np
@@ -187,6 +188,13 @@ def init_layers(nn_architecture:dict, seed:int = 42) -> dict:
         # and vector b for subsequent layers
         params_values['W' + str(layer_idx)] = np.random.randn(layer_output_size, layer_input_size) * 0.1
         params_values['b' + str(layer_idx)] = np.random.randn(layer_output_size) * 0.1
+
+        nin = layer_input_size
+        nout = layer_output_size
+        sd = math.sqrt(6.0 / (nin + nout))
+
+        #params_values['W' + str(layer_idx)] = np.random.normal(loc=0, scale=sd, size=(layer_output_size, layer_input_size))
+        #params_values['b' + str(layer_idx)] = np.random.normal(loc=0, scale=sd, size=(layer_output_size))
         
     return params_values
 

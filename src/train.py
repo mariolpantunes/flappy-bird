@@ -18,10 +18,11 @@ import statistics
 import websockets
 import numpy as np
 import src.nn as nn
-import optimization.de as de
-import optimization.ga as ga
-import optimization.pso as pso
-import optimization.init as init
+import pyBlindOpt.de as de
+import pyBlindOpt.ga as ga
+import pyBlindOpt.gwo as gwo
+import pyBlindOpt.pso as pso
+import pyBlindOpt.init as init
 
 
 logging.basicConfig(level=logging.INFO, format='%(message)s')
@@ -38,6 +39,7 @@ class Optimization(enum.Enum):
     '''
     de = 'de'
     ga = 'ga'
+    gwo = 'gwo'
     pso = 'pso'
 
     def __str__(self):
@@ -89,6 +91,7 @@ async def player_game(model: nn.NN) -> float:
                 c =  pipe['py_t'] + pipe['py_b'] / 2
                 X = np.array([player['py'], player['v'], c, pipe['px']])
                 p = model.predict(X)
+                #print(f'p = {p}')
                 if p[0] > 0.5:
                     await websocket.send(json.dumps({'cmd':'click'}))
             elif data['evt'] == 'done':
@@ -130,7 +133,7 @@ async def share_training_data(epoch:int, obj:list) -> None:
         await websocket.send(json.dumps({'cmd':'training', 'epoch':epoch, 'worst':worst,'best':best, 'mean':mean}))
 
 
-def callback(epoch:int, obj:list) -> None:
+def callback(epoch:int, obj:list, pop:list) -> None:
     '''
     Callback used to share the training data to the viewer.
 
@@ -138,6 +141,9 @@ def callback(epoch:int, obj:list) -> None:
         epoch (int): the current epoch
         obj (list): list with the current objective values
     '''
+    #best_candidate = pop[obj.index(min(obj))]
+    #worst_candidate = pop[obj.index(max(obj))]
+    #print(f'{best_candidate} / {worst_candidate}')
     asyncio.run(share_training_data(epoch, obj))
 
 
@@ -162,13 +168,13 @@ def main(args: argparse.Namespace) -> None:
         args (argparse.Namespace): the program arguments
     '''
     # Define the bounds for the optimization
-    bounds = np.asarray([[-1.0, 1.0]]*nn.network_size(NN_ARCHITECTURE))
+    bounds = np.asarray([[-10.0, 10.0]]*nn.network_size(NN_ARCHITECTURE))
     
     # Generate the initial population
     population = [nn.NN(NN_ARCHITECTURE, seed=args.s).ravel() for i in range(args.n)]
 
     # Apply Opposition Learning to the inital population
-    population = init.opposition_based(objective, bounds, population=population, n_jobs=args.n)
+    #population = init.opposition_based(objective, bounds, population=population, n_jobs=args.n)
 
     # Run the optimization algorithm
     if args.a is Optimization.de:
@@ -179,6 +185,9 @@ def main(args: argparse.Namespace) -> None:
         population=population, n_jobs=args.n, cached=False, verbose=True, seed=args.s)
     elif args.a is Optimization.pso:
         best, _ = pso.particle_swarm_optimization(objective, bounds, n_iter=args.e, callback = callback,
+        population=population, n_jobs=args.n, cached=False, verbose=True, seed=args.s)
+    elif args.a is Optimization.gwo:
+        best, _ = gwo.grey_wolf_optimization(objective, bounds, n_iter=args.e, callback = callback,
         population=population, n_jobs=args.n, cached=False, verbose=True, seed=args.s)
 
     # store the best model
@@ -191,7 +200,7 @@ if __name__ == '__main__':
     parser.add_argument('-s', type=int, help='Random generator seed', default=42)
     parser.add_argument('-e', type=int, help='optimization epochs', default=30)
     parser.add_argument('-n', type=int, help='population size', default=10)
-    parser.add_argument('-a', type=Optimization, help='Optimization algorithm', choices=list(Optimization), default='de')
+    parser.add_argument('-a', type=Optimization, help='Optimization algorithm', choices=list(Optimization), default='pso')
     parser.add_argument('-o', type=str, help='store the best model', default='out/model.json')
     args = parser.parse_args()
     # Global variable for the arguments (required due to the callback function)

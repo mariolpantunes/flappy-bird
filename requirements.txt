@@ -1,4 +1,4 @@
 pdoc>=12.3.0
 numpy>=1.23.4
 websockets>=10.4
-git+https://github.com/mariolpantunes/optimization@main#egg=optimization
+pyBlindOpt>=0.1.3.1

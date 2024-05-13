@@ -32,7 +32,7 @@ class NN:
     Ravel reduces the NN to a 1D  vector.
     The update method receives a 1D vector and loads the values into a network.
     '''
-    def __init__(self, nn_architecture:dict, seed:int=42) -> None:
+    def __init__(self, nn_architecture:dict) -> None:
         '''
         Constructor for a NN object.
 
@@ -45,10 +45,9 @@ class NN:
         
         Args:
             nn_architecture (dict): neural network definition
-            seed (int): seed for the random generator used in the network initialization
         '''
         self.nn_architecture = nn_architecture
-        self.params_values = init_layers(self.nn_architecture, seed)
+        self.params_values = init_layers(self.nn_architecture)
 
     def predict(self, X:np.ndarray) -> np.ndarray:
         '''
@@ -157,7 +156,7 @@ class NN:
         return str({'ARCHITECTURE':self.nn_architecture,'PARAMETERS':self.params_values})
 
 
-def init_layers(nn_architecture:dict, seed:int = 42) -> dict:
+def init_layers(nn_architecture:dict) -> dict:
     '''
     Given a network definition it creates and initializes a new network.
 
@@ -168,8 +167,6 @@ def init_layers(nn_architecture:dict, seed:int = 42) -> dict:
     Returns:
         dict: with the network parameters
     '''
-    # random seed initiation
-    np.random.seed(seed)
     # number of layers in our neural network
     number_of_layers = len(nn_architecture)
     # parameters storage initiation

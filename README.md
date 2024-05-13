@@ -54,7 +54,7 @@ In a terminal run:
 
 ```bash
 source venv/bin/activate
-python -m src.train -n <number_of_players> -e <number_of_epochs> -a [ga|de|pso]
+python -m src.train -n <number_of_players> -e <number_of_epochs> -a [ga|gwo|egwo|de|pso]
 ```
 
 ### Playing

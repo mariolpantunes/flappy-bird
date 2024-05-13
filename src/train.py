@@ -22,6 +22,7 @@ import pyBlindOpt.de as de
 import pyBlindOpt.ga as ga
 import pyBlindOpt.gwo as gwo
 import pyBlindOpt.pso as pso
+import pyBlindOpt.egwo as egwo
 import pyBlindOpt.init as init
 
 
@@ -41,6 +42,7 @@ class Optimization(enum.Enum):
     ga = 'ga'
     gwo = 'gwo'
     pso = 'pso'
+    egwo = 'egwo'
 
     def __str__(self):
         return self.value
@@ -74,6 +76,7 @@ async def player_game(model: nn.NN) -> float:
             data = json.loads(await websocket.recv())
             if data['evt'] == 'world_state':
                 player = data['players'][identification]
+
                 # find closest pipe
                 closest_pipe = None
                 for pipe in data['pipes']:
@@ -91,7 +94,8 @@ async def player_game(model: nn.NN) -> float:
                 c =  pipe['py_t'] + pipe['py_b'] / 2
                 X = np.array([player['py'], player['v'], c, pipe['px']])
                 p = model.predict(X)
-                #print(f'p = {p}')
+                #print(f'p({identification}) = {p}')
+                #print(f'{model}')
                 if p[0] > 0.5:
                     await websocket.send(json.dumps({'cmd':'click'}))
             elif data['evt'] == 'done':
@@ -113,6 +117,7 @@ def objective(p: np.ndarray) -> float:
     '''
     model = nn.NN(NN_ARCHITECTURE)
     model.update(p)
+
     highscore = asyncio.run(player_game(model))
     return -highscore
 
@@ -167,14 +172,17 @@ def main(args: argparse.Namespace) -> None:
     Args:
         args (argparse.Namespace): the program arguments
     '''
+    # Define the random seed
+    np.random.seed(args.s)
+
     # Define the bounds for the optimization
-    bounds = np.asarray([[-10.0, 10.0]]*nn.network_size(NN_ARCHITECTURE))
+    bounds = np.asarray([[-1.0, 1.0]]*nn.network_size(NN_ARCHITECTURE))
     
     # Generate the initial population
-    population = [nn.NN(NN_ARCHITECTURE, seed=args.s).ravel() for i in range(args.n)]
+    population = [nn.NN(NN_ARCHITECTURE).ravel() for i in range(args.n)]
 
     # Apply Opposition Learning to the inital population
-    #population = init.opposition_based(objective, bounds, population=population, n_jobs=args.n)
+    population = init.opposition_based(objective, bounds, population=population, n_jobs=args.n)
 
     # Run the optimization algorithm
     if args.a is Optimization.de:
@@ -188,6 +196,9 @@ def main(args: argparse.Namespace) -> None:
         population=population, n_jobs=args.n, cached=False, verbose=True, seed=args.s)
     elif args.a is Optimization.gwo:
         best, _ = gwo.grey_wolf_optimization(objective, bounds, n_iter=args.e, callback = callback,
+        population=population, n_jobs=args.n, cached=False, verbose=True, seed=args.s)
+    elif args.a is Optimization.egwo:
+        best, _ = egwo.grey_wolf_optimization(objective, bounds, n_iter=args.e, callback = callback,
         population=population, n_jobs=args.n, cached=False, verbose=True, seed=args.s)
 
     # store the best model

@@ -69,6 +69,7 @@ async def player_game(model: nn.NN) -> float:
     pipe_x, pipe_y_t, pipe_y_b = 0,0,0
 
     #async with websockets.connect('ws://localhost:8765/player') as websocket:
+    #print(f'{CONSOLE_ARGUMENTS.u}/player')
     async with websockets.connect(f'{CONSOLE_ARGUMENTS.u}/player') as websocket:
         await websocket.send(json.dumps({'cmd':'join', 'id':identification}))
         done = False
@@ -182,7 +183,8 @@ def main(args: argparse.Namespace) -> None:
     population = [nn.NN(NN_ARCHITECTURE).ravel() for i in range(args.n)]
 
     # Apply Opposition Learning to the inital population
-    population = init.opposition_based(objective, bounds, population=population, n_jobs=args.n)
+    #population = init.opposition_based(objective, bounds, population=population, n_jobs=args.n)
+    population = init.round_init(objective, bounds, n_pop=args.n, n_rounds=5, n_jobs=args.n)
 
     # Run the optimization algorithm
     if args.a is Optimization.de:

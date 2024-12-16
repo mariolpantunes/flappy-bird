@@ -238,9 +238,9 @@ class World:
             if len(self.pipes) < 3:
                 if self.pipes:
                     previous_pipe = self.pipes[-1]
-                    lower_limit = max(previous_pipe.HEAD,previous_pipe.py_top-(previous_pipe.GAP/2))
+                    lower_limit = max(previous_pipe.HEAD,previous_pipe.py_top-int(previous_pipe.GAP/2))
                     upper_limit = min(self.HEIGHT-previous_pipe.HEAD-previous_pipe.GAP,
-                    previous_pipe.py_top+(previous_pipe.GAP/2))
+                    previous_pipe.py_top+int(previous_pipe.GAP/2))
                     py = random.randint(lower_limit, upper_limit)
                     self.pipes.append(Pipe(previous_pipe.px+290, py))
                 else:

@@ -11,11 +11,9 @@ import enum
 import math
 import uuid
 import json
-import asyncio
 import logging
 import argparse
 import statistics
-import websockets
 import numpy as np
 import src.nn as nn
 import pyBlindOpt.de as de
@@ -24,6 +22,9 @@ import pyBlindOpt.gwo as gwo
 import pyBlindOpt.pso as pso
 import pyBlindOpt.egwo as egwo
 import pyBlindOpt.init as init
+
+
+from websockets.sync.client import connect
 
 
 logging.basicConfig(level=logging.INFO, format='%(message)s')
@@ -49,11 +50,11 @@ class Optimization(enum.Enum):
 
 
 NN_ARCHITECTURE = [
-    {'input_dim': 4, 'output_dim': 1, 'activation': 'sigmoid'}
+    {'input_dim': 4, 'output_dim': 5, 'activation': 'sigmoid'}
 ]
 
 
-async def player_game(model: nn.NN) -> float:
+def player_game(model: nn.NN) -> float:
     '''
     Player main loop.
 
@@ -68,13 +69,12 @@ async def player_game(model: nn.NN) -> float:
     player_x, player_y = 0,0
     pipe_x, pipe_y_t, pipe_y_b = 0,0,0
 
-    #async with websockets.connect('ws://localhost:8765/player') as websocket:
-    #print(f'{CONSOLE_ARGUMENTS.u}/player')
-    async with websockets.connect(f'{CONSOLE_ARGUMENTS.u}/player') as websocket:
-        await websocket.send(json.dumps({'cmd':'join', 'id':identification}))
+    
+    with connect(f'{CONSOLE_ARGUMENTS.u}/player') as websocket:
+        websocket.send(json.dumps({'cmd':'join', 'id':identification}))
         done = False
         while not done:
-            data = json.loads(await websocket.recv())
+            data = json.loads(websocket.recv())
             if data['evt'] == 'world_state':
                 player = data['players'][identification]
 
@@ -95,10 +95,8 @@ async def player_game(model: nn.NN) -> float:
                 c =  pipe['py_t'] + pipe['py_b'] / 2
                 X = np.array([player['py'], player['v'], c, pipe['px']])
                 p = model.predict(X)
-                #print(f'p({identification}) = {p}')
-                #print(f'{model}')
                 if p[0] > 0.5:
-                    await websocket.send(json.dumps({'cmd':'click'}))
+                    websocket.send(json.dumps({'cmd':'click'}))
             elif data['evt'] == 'done':
                 d1 = math.sqrt((player_x-pipe_x)**2 + (player_y-pipe_y_b)**2)
                 d2 = math.sqrt((player_x-pipe_x)**2 + (player_y-pipe_y_t)**2)
@@ -119,13 +117,13 @@ def objective(p: np.ndarray) -> float:
     model = nn.NN(NN_ARCHITECTURE)
     model.update(p)
 
-    highscore = asyncio.run(player_game(model))
+    highscore = player_game(model)
     return -highscore
 
 
-async def share_training_data(epoch:int, obj:list) -> None:
+def share_training_data(epoch:int, obj:list) -> None:
     '''
-    Async method that sends the training data to the viewer. 
+    Method that sends the training data to the viewer. 
 
     Args:
         epoch (int): the current epoch
@@ -135,8 +133,9 @@ async def share_training_data(epoch:int, obj:list) -> None:
     worst = max(obj)
     best = min(obj)
     mean = statistics.mean(obj)
-    async with websockets.connect(f'{CONSOLE_ARGUMENTS.u}/training') as websocket:
-        await websocket.send(json.dumps({'cmd':'training', 'epoch':epoch, 'worst':worst,'best':best, 'mean':mean}))
+
+    with connect(f'{CONSOLE_ARGUMENTS.u}/training') as websocket:
+        websocket.send(json.dumps({'cmd':'training', 'epoch':epoch, 'worst':worst,'best':best, 'mean':mean}))
 
 
 def callback(epoch:int, obj:list, pop:list) -> None:
@@ -147,10 +146,7 @@ def callback(epoch:int, obj:list, pop:list) -> None:
         epoch (int): the current epoch
         obj (list): list with the current objective values
     '''
-    #best_candidate = pop[obj.index(min(obj))]
-    #worst_candidate = pop[obj.index(max(obj))]
-    #print(f'{best_candidate} / {worst_candidate}')
-    asyncio.run(share_training_data(epoch, obj))
+    share_training_data(epoch, obj)
 
 
 def store_data(model:dict, parameters:np.ndarray, path:str) -> None:
@@ -184,7 +180,8 @@ def main(args: argparse.Namespace) -> None:
 
     # Apply Opposition Learning to the inital population
     #population = init.opposition_based(objective, bounds, population=population, n_jobs=args.n)
-    population = init.round_init(objective, bounds, n_pop=args.n, n_rounds=5, n_jobs=args.n)
+    #population = init.round_init(objective, bounds, n_pop=args.n, n_rounds=5, n_jobs=args.n)
+    population = init.oblesa(objective,bounds=bounds, n_pop=args.n)
 
     # Run the optimization algorithm
     if args.a is Optimization.de:

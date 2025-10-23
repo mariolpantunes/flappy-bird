@@ -334,7 +334,7 @@ class GameServer:
         self.viewers = set()
         self.world = World(with_pipes=with_pipes)
 
-    async def incomming_handler(self, websocket, path:str) -> None:
+    async def incomming_handler(self, websocket) -> None:
         '''
         Manages the incomming messages.
 
@@ -342,6 +342,7 @@ class GameServer:
             websocket: websocket
             path (str): path used by the client
         '''
+        path = websocket.request.path  # Get path from the websocket object
         try:
             async for message in websocket:
                 data = json.loads(message)
